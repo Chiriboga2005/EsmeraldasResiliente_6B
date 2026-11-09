@@ -40,9 +40,9 @@ class OpenWeatherService:
             lon = lon or getattr(settings, 'ESMERALDAS_LON', -79.6582)
             lugar_nombre = 'Esmeraldas'
 
-        # Fallback si no hay API key configurada todavía
+        # Si no hay API key configurada todavía, consultar el servicio libre en vivo Open-Meteo
         if not api_key:
-            return cls._obtener_mock_clima(lugar_nombre, lat, lon)
+            return cls._obtener_open_meteo_live(lugar_nombre, lat, lon)
 
         url = f"{settings.OPENWEATHERMAP_BASE_URL}/weather"
         params = {
@@ -119,6 +119,85 @@ class OpenWeatherService:
                 'nivel': 'BAJO',
                 'mensaje': 'Condiciones meteorológicas estables o lluvias débiles normales en la región.'
             }
+
+    @classmethod
+    def _obtener_open_meteo_live(cls, lugar_nombre, lat, lon):
+        """
+        Consulta en tiempo real el pronóstico abierto oficial de Open-Meteo
+        (sin requerimiento de API Key, rápido y con previsión horaria).
+        """
+        try:
+            url = (
+                f"https://api.open-meteo.com/v1/forecast"
+                f"?latitude={lat}&longitude={lon}"
+                f"&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,surface_pressure"
+                f"&hourly=temperature_2m,precipitation,weather_code,wind_speed_10m"
+                f"&forecast_days=1&timezone=America%2FGuayaquil"
+            )
+            res = requests.get(url, timeout=5)
+            if res.status_code == 200:
+                data = res.json()
+                curr = data.get('current', {})
+                hourly = data.get('hourly', {})
+                wcode = curr.get('weather_code', 0)
+                
+                desc, icon = cls._mapear_wmo_code(wcode)
+                lluvia_mm = curr.get('precipitation', 0.0)
+                alerta = cls.evaluar_umbral_alerta(lluvia_mm)
+
+                return {
+                    'lugar': lugar_nombre,
+                    'coordenadas': {'lat': lat, 'lon': lon},
+                    'condicion': desc,
+                    'icono': f"https://openweathermap.org/img/wn/{icon}@2x.png",
+                    'temperatura_c': round(curr.get('temperature_2m', 29.0), 1),
+                    'sensacion_termica_c': round(curr.get('apparent_temperature', 33.0), 1),
+                    'humedad_porcentaje': curr.get('relative_humidity_2m', 75),
+                    'presion_hpa': round(curr.get('surface_pressure', 1012), 0),
+                    'nubosidad_porcentaje': curr.get('cloud_cover', 50),
+                    'velocidad_viento_kmh': round(curr.get('wind_speed_10m', 12.0), 1),
+                    'direccion_viento_grados': curr.get('wind_direction_10m', 240),
+                    'precipitacion_1h_mm': lluvia_mm,
+                    'precipitacion_3h_mm': lluvia_mm,
+                    'nivel_riesgo_hidrologico': alerta['nivel'],
+                    'mensaje_alerta': alerta['mensaje'],
+                    'es_simulacion': False,
+                    'fuente': 'Open-Meteo & OpenWeatherMap Live',
+                    'prevision_horaria': [
+                        {
+                            'hora': hourly['time'][i][-5:],
+                            'temp': hourly['temperature_2m'][i],
+                            'lluvia': hourly['precipitation'][i],
+                            'codigo': hourly['weather_code'][i]
+                        }
+                        for i in range(min(24, len(hourly.get('time', []))))
+                    ]
+                }
+        except Exception:
+            pass
+        return cls._obtener_mock_clima(lugar_nombre, lat, lon)
+
+    @staticmethod
+    def _mapear_wmo_code(code):
+        if code == 0:
+            return "Cielo despejado", "01d"
+        elif code in (1, 2):
+            return "Parcialmente nublado", "02d"
+        elif code == 3:
+            return "Nublado", "03d"
+        elif code in (45, 48):
+            return "Niebla o neblina costera", "50d"
+        elif code in (51, 53, 55):
+            return "Llovizna ligera", "09d"
+        elif code in (61, 63):
+            return "Lluvia moderada", "10d"
+        elif code == 65:
+            return "Lluvia intensa torrencial", "10d"
+        elif code in (80, 81, 82):
+            return "Chubascos dispersos", "09d"
+        elif code in (95, 96, 99):
+            return "Tormenta eléctrica severa", "11d"
+        return "Intervalos nubosos", "02d"
 
     @classmethod
     def _obtener_mock_clima(cls, lugar_nombre, lat, lon):
