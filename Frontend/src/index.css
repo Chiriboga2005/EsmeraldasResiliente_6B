@@ -25,29 +25,33 @@ html.light, body.light {
   color: #0f172a;
 }
 
-.light .bg-crisis-900 {
+.light .bg-crisis-900,
+.light [class*="bg-crisis-900"] {
   background-color: #f8fafc !important;
 }
 
-.light .bg-crisis-800 {
+.light .bg-crisis-800,
+.light [class*="bg-crisis-800"] {
   background-color: #ffffff !important;
   box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05);
 }
 
-.light .bg-crisis-700 {
+.light .bg-crisis-700,
+.light [class*="bg-crisis-700"]:not(button):not(a) {
   background-color: #f1f5f9 !important;
 }
 
 .light .border-crisis-700,
-.light .border-crisis-600 {
+.light .border-crisis-600,
+.light [class*="border-crisis-"] {
   border-color: #e2e8f0 !important;
 }
 
 /* Contraste de Textos en Modo Claro */
-.light h1:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]),
-.light h2:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]),
-.light h3:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]),
-.light h4:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]),
+.light h1:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-amber"]),
+.light h2:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-amber"]),
+.light h3:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-amber"]),
+.light h4:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-amber"]),
 .light .text-white:not(button):not(a):not(span[class*="bg-"]):not(div[class*="bg-"]) {
   color: #0f172a !important;
 }
@@ -65,14 +69,22 @@ html.light, body.light {
   color: #64748b !important;
 }
 
-/* Fondos sutiles oscuros adaptados a claro */
+.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Fondos oscuros adaptados a claro (incluyendo modificadores /80, /90, /95) */
 .light .bg-slate-900,
-.light .bg-slate-800 {
+.light .bg-slate-800,
+.light [class*="bg-slate-900"]:not(button):not(a),
+.light [class*="bg-slate-800"]:not(button):not(a) {
   background-color: #ffffff !important;
 }
 
 .light .border-slate-800,
-.light .border-slate-700 {
+.light .border-slate-700,
+.light [class*="border-slate-800"],
+.light [class*="border-slate-700"] {
   border-color: #e2e8f0 !important;
 }
 

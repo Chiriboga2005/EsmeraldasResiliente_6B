@@ -26,13 +26,11 @@ export const Sidebar = () => {
       to: '/incidentes',
       label: 'Seguimiento Incidentes',
       icon: ShieldAlert,
-      badge: 'Módulo 3',
     },
     {
       to: '/reportes',
       label: 'Reporte Comunitario',
       icon: AlertTriangle,
-      badge: 'Móvil',
     },
     {
       to: '/albergues',
@@ -50,7 +48,7 @@ export const Sidebar = () => {
     <aside className="w-64 bg-crisis-800 border-r border-crisis-700 flex flex-col justify-between shrink-0">
       <div className="p-4 space-y-6">
         <div>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">
+          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 px-2">
             Módulos del Sistema
           </p>
           <nav className="space-y-1.5">
@@ -64,8 +62,8 @@ export const Sidebar = () => {
                   className={({ isActive }) =>
                     `flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition ${
                       isActive
-                        ? 'bg-sky-500/15 text-sky-300 border border-sky-500/30'
-                        : 'text-slate-300 hover:bg-crisis-700/60 hover:text-white'
+                        ? 'bg-sky-100/80 dark:bg-sky-500/15 text-sky-800 dark:text-sky-300 border border-sky-400/50 dark:border-sky-500/30 font-bold shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-crisis-700/60 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
@@ -79,7 +77,7 @@ export const Sidebar = () => {
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-sm shadow-emerald-400"></span>
                     </span>
                   ) : item.badge ? (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-crisis-700 text-slate-300 border border-slate-600">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-crisis-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600">
                       {item.badge}
                     </span>
                   ) : null}
@@ -90,12 +88,12 @@ export const Sidebar = () => {
         </div>
 
         {/* Resumen de Datos Activos */}
-        <div className="bg-crisis-900/60 p-3 rounded-lg border border-crisis-700 text-xs text-slate-400 space-y-2">
-          <div className="flex items-center gap-2 text-slate-300 font-semibold">
-            <Layers className="w-3.5 h-3.5 text-sky-400" />
+        <div className="bg-slate-50 dark:bg-crisis-900/60 p-3 rounded-lg border border-slate-200 dark:border-crisis-700 text-xs text-slate-600 dark:text-slate-400 space-y-2">
+          <div className="flex items-center gap-2 text-slate-800 dark:text-slate-300 font-semibold">
+            <Layers className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
             <span>Base Espacial Activa</span>
           </div>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
             Aiven PostGIS (EPSG:4326) conectado. Polígonos de susceptibilidad y ríos Teaone/Esmeraldas cargados.
           </p>
         </div>

@@ -24,7 +24,13 @@ import {
   MapPin,
   Sun,
   Layers,
-  Sparkles
+  Sparkles,
+  Plus,
+  Trash2,
+  Building2,
+  Flame,
+  HeartPulse,
+  X
 } from 'lucide-react';
 import { gisApi } from '../../api/gisApi';
 import { weatherApi } from '../../api/weatherApi';
@@ -314,6 +320,53 @@ export const CrisisRoomPage = () => {
   // Línea de tiempo interactiva (MSN El Tiempo Timeline)
   const [timelineIndex, setTimelineIndex] = useState(11);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Modal y Formulario para creación de Hospitales y Cuerpo de Bomberos (Exclusivo Administrador)
+  const [showCreateInfraModal, setShowCreateInfraModal] = useState(false);
+  const [infraForm, setInfraForm] = useState({
+    nombre: '',
+    tipo: 'HOSPITAL',
+    direccion: '',
+    telefono_contacto: '',
+    contacto_responsable: '',
+    capacidad_atencion: 100,
+    lat: 0.968,
+    lon: -79.654,
+  });
+
+  const handleCreateInfraestructura = async (e) => {
+    e.preventDefault();
+    try {
+      await gisApi.createInfraestructura(infraForm);
+      setShowCreateInfraModal(false);
+      const res = await gisApi.getInfraestructuras();
+      setInfraestructuras(res);
+      setSaveStatus({
+        type: 'success',
+        text: `✅ ${infraForm.tipo}: "${infraForm.nombre}" guardado exitosamente en la base de datos PostgreSQL.`,
+      });
+      setTimeout(() => setSaveStatus(null), 6000);
+    } catch (err) {
+      alert('Error guardando infraestructura: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleDeleteInfraestructura = async (id, nombre) => {
+    if (window.confirm(`¿Confirmas que deseas eliminar permanentemente "${nombre}" de la base de datos?`)) {
+      try {
+        await gisApi.deleteInfraestructura(id);
+        const res = await gisApi.getInfraestructuras();
+        setInfraestructuras(res);
+        setSaveStatus({
+          type: 'success',
+          text: `🗑️ "${nombre}" eliminado del sistema.`,
+        });
+        setTimeout(() => setSaveStatus(null), 6000);
+      } catch (err) {
+        alert('Error eliminando infraestructura: ' + (err.response?.data?.detail || err.message));
+      }
+    }
+  };
 
   // Manejador de arrastre de infraestructuras (Hospitales / Bomberos) para reubicación en tierra firme (Exclusivo Administrador)
   const handleInfraDragEnd = (infraId, infraNombre) => async (e) => {
@@ -656,6 +709,53 @@ export const CrisisRoomPage = () => {
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loadingWeather ? 'animate-spin text-sky-400' : ''}`} />
             </button>
+
+            {/* Acciones de Creación (Exclusivo Administrador) */}
+            {isAdmin && (
+              <div className="flex items-center gap-1.5 pl-2 border-l border-crisis-700">
+                <button
+                  onClick={() => {
+                    setInfraForm({
+                      nombre: '',
+                      tipo: 'HOSPITAL',
+                      direccion: 'Av. Libertad y Calle 10, Esmeraldas',
+                      telefono_contacto: '062723000',
+                      contacto_responsable: 'Dr. Roberto Estupiñán',
+                      capacidad_atencion: 120,
+                      lat: Number(mapCenter[0].toFixed(5)),
+                      lon: Number(mapCenter[1].toFixed(5)),
+                    });
+                    setShowCreateInfraModal(true);
+                  }}
+                  className="px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white font-bold text-[11px] rounded-lg shadow flex items-center gap-1 transition active:scale-95"
+                  title="Registrar nuevo hospital en la base de datos"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Hospital</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setInfraForm({
+                      nombre: '',
+                      tipo: 'BOMBEROS',
+                      direccion: 'Calle Sucre y Rocafuerte, Esmeraldas',
+                      telefono_contacto: '062720102',
+                      contacto_responsable: 'Cmdte. Miguel Perea',
+                      capacidad_atencion: 45,
+                      lat: Number(mapCenter[0].toFixed(5)),
+                      lon: Number(mapCenter[1].toFixed(5)),
+                    });
+                    setShowCreateInfraModal(true);
+                  }}
+                  className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] rounded-lg shadow flex items-center gap-1 transition active:scale-95"
+                  title="Registrar nueva estación de bomberos en la base de datos"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Bomberos</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -906,8 +1006,17 @@ export const CrisisRoomPage = () => {
                         </p>
                       )}
                       {isAdmin && (
-                        <div className="pt-1.5 border-t border-slate-700/60 text-[10px] text-sky-300 flex items-center gap-1 font-semibold">
-                          <span>✋ Arrastra este icono en el mapa para corregir su posición en tierra firme.</span>
+                        <div className="pt-2 border-t border-slate-700/60 space-y-1.5">
+                          <div className="text-[10px] text-sky-300 flex items-center gap-1 font-semibold">
+                            <span>✋ Arrastra este icono en el mapa para corregir su posición en tierra firme.</span>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteInfraestructura(infraId, p.nombre)}
+                            className="w-full py-1 bg-red-600/80 hover:bg-red-500 text-white rounded text-[10px] font-bold flex items-center justify-center gap-1 transition"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Eliminar de Base de Datos</span>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1116,6 +1225,151 @@ export const CrisisRoomPage = () => {
 
         </div>
       </div>
+
+      {/* MODAL CREAR HOSPITAL / BOMBEROS (EXCLUSIVO ADMINISTRADOR) */}
+      {showCreateInfraModal && (
+        <div className="fixed inset-0 z-[1500] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                {infraForm.tipo === 'HOSPITAL' ? (
+                  <HeartPulse className="w-5 h-5 text-red-500" />
+                ) : (
+                  <Flame className="w-5 h-5 text-amber-500" />
+                )}
+                <span>Registrar {infraForm.tipo === 'HOSPITAL' ? 'Nuevo Hospital' : 'Nueva Estación de Bomberos'}</span>
+              </h3>
+              <button
+                onClick={() => setShowCreateInfraModal(false)}
+                className="text-slate-400 hover:text-slate-800 dark:hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateInfraestructura} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-700 dark:text-slate-300 font-semibold">Tipo de Infraestructura</label>
+                  <select
+                    value={infraForm.tipo}
+                    onChange={(e) => setInfraForm({ ...infraForm, tipo: e.target.value })}
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
+                  >
+                    <option value="HOSPITAL">🏥 Hospital / Centro Médico</option>
+                    <option value="BOMBEROS">🚒 Cuerpo de Bomberos</option>
+                    <option value="POLICIA">👮 Policía / Puesto de Auxilio</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-700 dark:text-slate-300 font-semibold">Capacidad de Atención</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={infraForm.capacidad_atencion}
+                    onChange={(e) => setInfraForm({ ...infraForm, capacidad_atencion: parseInt(e.target.value) || 0 })}
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-700 dark:text-slate-300 font-semibold">Nombre Oficial *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder={infraForm.tipo === 'HOSPITAL' ? 'ej: Hospital General Delfina Torres' : 'ej: Estación de Bomberos San Rafael'}
+                  value={infraForm.nombre}
+                  onChange={(e) => setInfraForm({ ...infraForm, nombre: e.target.value })}
+                  className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-700 dark:text-slate-300 font-semibold">Teléfono de Contacto</label>
+                  <input
+                    type="text"
+                    placeholder="ej: 062723000"
+                    value={infraForm.telefono_contacto}
+                    onChange={(e) => setInfraForm({ ...infraForm, telefono_contacto: e.target.value })}
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-700 dark:text-slate-300 font-semibold">Responsable a Cargo</label>
+                  <input
+                    type="text"
+                    placeholder="ej: Dr. Roberto Estupiñán"
+                    value={infraForm.contacto_responsable}
+                    onChange={(e) => setInfraForm({ ...infraForm, contacto_responsable: e.target.value })}
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-700 dark:text-slate-300 font-semibold">Dirección / Sector</label>
+                <input
+                  type="text"
+                  placeholder="ej: Av. Libertad y Calle 10, Sector Centro"
+                  value={infraForm.direccion}
+                  onChange={(e) => setInfraForm({ ...infraForm, direccion: e.target.value })}
+                  className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-700 dark:text-slate-300 font-semibold">Latitud GPS</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    required
+                    value={infraForm.lat}
+                    onChange={(e) => setInfraForm({ ...infraForm, lat: parseFloat(e.target.value) || 0 })}
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-700 dark:text-slate-300 font-semibold">Longitud GPS</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    required
+                    value={infraForm.lon}
+                    onChange={(e) => setInfraForm({ ...infraForm, lon: parseFloat(e.target.value) || 0 })}
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateInfraModal(false)}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className={`px-4 py-1.5 text-white font-bold rounded-lg shadow transition active:scale-95 flex items-center gap-1.5 ${
+                    infraForm.tipo === 'HOSPITAL' ? 'bg-red-600 hover:bg-red-500' : 'bg-amber-600 hover:bg-amber-500'
+                  }`}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Guardar en Base de Datos</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </ErrorBoundary>
   );
 };

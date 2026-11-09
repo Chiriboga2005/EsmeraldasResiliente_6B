@@ -184,11 +184,11 @@ export const IncidentCommandPage = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">
-                Módulo 3 • Comando COE
+              <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/30">
+                Comando COE • Sala de Situación
               </span>
-              <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
                 En Vivo (WebSockets)
               </span>
             </div>
@@ -292,11 +292,11 @@ export const IncidentCommandPage = () => {
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           
           {/* Tabs de Estado (Atendidos, Pendientes, En Proceso) */}
-          <div className="flex flex-wrap bg-crisis-900 p-1 rounded-xl border border-crisis-700 text-xs gap-1">
+          <div className="flex flex-wrap bg-slate-100 dark:bg-crisis-900 p-1 rounded-xl border border-slate-200 dark:border-crisis-700 text-xs gap-1">
             <button
               onClick={() => setStatusFilter('TODOS')}
               className={`px-3 py-1.5 rounded-lg font-bold transition ${
-                statusFilter === 'TODOS' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                statusFilter === 'TODOS' ? 'bg-sky-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Todos ({incidentes.length})
@@ -304,7 +304,7 @@ export const IncidentCommandPage = () => {
             <button
               onClick={() => setStatusFilter('PENDIENTE')}
               className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                statusFilter === 'PENDIENTE' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                statusFilter === 'PENDIENTE' ? 'bg-amber-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Clock className="w-3.5 h-3.5" /> Pendientes
@@ -312,7 +312,7 @@ export const IncidentCommandPage = () => {
             <button
               onClick={() => setStatusFilter('EN_PROCESO')}
               className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                statusFilter === 'EN_PROCESO' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                statusFilter === 'EN_PROCESO' ? 'bg-sky-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <RefreshCw className="w-3.5 h-3.5" /> En Proceso
@@ -320,7 +320,7 @@ export const IncidentCommandPage = () => {
             <button
               onClick={() => setStatusFilter('ATENDIDO')}
               className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                statusFilter === 'ATENDIDO' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                statusFilter === 'ATENDIDO' ? 'bg-emerald-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" /> Atendidos
@@ -328,7 +328,7 @@ export const IncidentCommandPage = () => {
             <button
               onClick={() => setStatusFilter('DESCARTADO')}
               className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                statusFilter === 'DESCARTADO' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-white'
+                statusFilter === 'DESCARTADO' ? 'bg-slate-700 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <XCircle className="w-3.5 h-3.5" /> Descartados
@@ -343,7 +343,7 @@ export const IncidentCommandPage = () => {
               placeholder="Buscar por sector, evento o detalle..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-crisis-900 border border-crisis-600 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-crisis-900 border border-slate-300 dark:border-crisis-600 rounded-lg text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500"
             />
           </div>
         </div>
@@ -442,18 +442,18 @@ export const IncidentCommandPage = () => {
                 </div>
 
                 {/* Métricas del Incidente */}
-                <div className="bg-crisis-900/80 p-3 rounded-lg border border-crisis-700 text-xs space-y-1.5">
-                  <div className="flex justify-between text-slate-300">
+                <div className="bg-slate-50 dark:bg-crisis-900/80 p-3 rounded-xl border border-slate-200 dark:border-crisis-700 text-xs space-y-1.5 shadow-sm">
+                  <div className="flex justify-between text-slate-700 dark:text-slate-300 font-medium">
                     <span>Personas atrapadas:</span>
-                    <span className="font-bold text-red-400">{inc.personas_atrapadas}</span>
+                    <span className="font-bold text-red-600 dark:text-red-400">{inc.personas_atrapadas}</span>
                   </div>
-                  <div className="flex justify-between text-slate-300">
+                  <div className="flex justify-between text-slate-700 dark:text-slate-300 font-medium">
                     <span>Familias afectadas:</span>
-                    <span className="font-bold text-amber-400">{inc.familias_afectadas}</span>
+                    <span className="font-bold text-amber-600 dark:text-amber-400">{inc.familias_afectadas}</span>
                   </div>
-                  <div className="flex justify-between text-slate-400 text-[10px] pt-1 border-t border-crisis-700">
+                  <div className="flex justify-between text-slate-500 dark:text-slate-400 text-[10px] pt-1.5 border-t border-slate-200 dark:border-crisis-700">
                     <span>Informante:</span>
-                    <span className="truncate max-w-[120px]">{inc.usuario_nombre}</span>
+                    <span className="truncate max-w-[120px] font-semibold">{inc.usuario_nombre}</span>
                   </div>
                 </div>
               </div>
@@ -639,3 +639,4 @@ export const IncidentCommandPage = () => {
   );
 };
 export default IncidentCommandPage;
+

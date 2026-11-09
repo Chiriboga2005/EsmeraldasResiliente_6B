@@ -308,29 +308,26 @@ export const CitizenReportPage = () => {
           ></textarea>
         </div>
 
-        {/* Captura de Foto */}
+        {/* Captura de Foto - En Desarrollo */}
         <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
-            Evidencia Fotográfica (Opcional)
-          </label>
-          <label className="flex flex-col items-center justify-center border-2 border-dashed border-crisis-600 hover:border-sky-500/50 rounded-xl p-4 cursor-pointer bg-crisis-900/40 transition">
-            <Camera className="w-6 h-6 text-slate-400 mb-1" />
-            <span className="text-xs text-slate-300">
-              {foto ? foto.name : 'Tomar foto o subir imagen'}
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-semibold text-slate-300 uppercase">
+              Evidencia Fotográfica
+            </label>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              Aún en Desarrollo
             </span>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFotoChange}
-              className="hidden"
-            />
-          </label>
-          {fotoPreview && (
-            <div className="mt-2 relative w-24 h-24 rounded-lg overflow-hidden border border-crisis-600">
-              <img src={fotoPreview} alt="Preview" className="w-full h-full object-cover" />
-            </div>
-          )}
+          </div>
+
+          <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-600/60 rounded-xl p-4 bg-slate-900/30 opacity-75 cursor-not-allowed text-center space-y-1">
+            <Camera className="w-6 h-6 text-slate-500 mb-0.5" />
+            <span className="text-xs font-semibold text-slate-400">
+              Captura fotográfica deshabilitada temporalmente
+            </span>
+            <p className="text-[11px] text-slate-500 max-w-sm">
+              Esta función se encuentra actualmente en desarrollo. Los incidentes se procesan directamente con coordenadas GPS y descripción técnica de la emergencia.
+            </p>
+          </div>
         </div>
 
         {/* Botón de Envío */}

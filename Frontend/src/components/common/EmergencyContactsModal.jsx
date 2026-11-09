@@ -11,7 +11,6 @@ import {
   Building2, 
   Zap, 
   Droplet,
-  ExternalLink,
   Search
 } from 'lucide-react';
 
@@ -31,7 +30,7 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
       icon: ShieldAlert,
       color: 'from-red-600 to-rose-700',
       badge: '24/7 Inmediato',
-      badgeColor: 'bg-red-500/20 text-red-400 border-red-500/30'
+      badgeColor: 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30'
     },
     {
       name: 'Cuerpo de Bomberos de Esmeraldas',
@@ -42,7 +41,7 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
       icon: Flame,
       color: 'from-amber-600 to-orange-700',
       badge: 'Rescate Acuático COE',
-      badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+      badgeColor: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30'
     },
     {
       name: 'Hospital General Delfina Torres de Concha',
@@ -53,7 +52,7 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
       icon: HeartPulse,
       color: 'from-emerald-600 to-teal-700',
       badge: 'Atención Crítica',
-      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+      badgeColor: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
     },
     {
       name: 'Cruz Roja Ecuatoriana - Junta Esmeraldas',
@@ -64,7 +63,7 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
       icon: Ambulance,
       color: 'from-rose-600 to-pink-700',
       badge: 'Soporte Vital',
-      badgeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+      badgeColor: 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30'
     },
     {
       name: 'Policía Nacional (Comando Subzona 8)',
@@ -75,7 +74,7 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
       icon: Building2,
       color: 'from-blue-600 to-indigo-700',
       badge: 'Seguridad Ciudadana',
-      badgeColor: 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+      badgeColor: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30'
     },
     {
       name: 'Sala de Crisis COE Cantonal / Gestión de Riesgos',
@@ -86,7 +85,7 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
       icon: ShieldAlert,
       color: 'from-sky-600 to-cyan-700',
       badge: 'Mando Unificado',
-      badgeColor: 'bg-sky-500/20 text-sky-400 border-sky-500/30'
+      badgeColor: 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30'
     },
     {
       name: 'CNEL EP - Emergencias de Red Eléctrica',
@@ -97,7 +96,7 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
       icon: Zap,
       color: 'from-yellow-600 to-amber-700',
       badge: 'Corte Seguro',
-      badgeColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+      badgeColor: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30'
     },
     {
       name: 'EAPA San Mateo - Distribución de Agua Segura',
@@ -108,7 +107,7 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
       icon: Droplet,
       color: 'from-cyan-600 to-blue-700',
       badge: 'Tanqueros COE',
-      badgeColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
+      badgeColor: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-400 border-cyan-500/30'
     }
   ];
 
@@ -127,27 +126,27 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 z-[1500] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div 
-        className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 border-b border-slate-800 p-4 sm:p-5 flex items-center justify-between">
+        <div className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 p-4 sm:p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-600 flex items-center justify-center text-white shadow-lg">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-600 flex items-center justify-center text-white shadow-md">
               <PhoneCall className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-wide">
                 Directorio de Contactos de Emergencia
               </h2>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Líneas directas oficiales del COE Cantonal de Esmeraldas y socorristas
               </p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition"
             title="Cerrar ventana"
           >
             <X className="w-5 h-5" />
@@ -155,7 +154,7 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Buscador */}
-        <div className="p-3 bg-slate-800/80 border-b border-slate-700/80">
+        <div className="p-3 bg-slate-100/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700/80">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input 
@@ -163,7 +162,7 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
               placeholder="Buscar por institución, servicio o número..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+              className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500"
             />
           </div>
         </div>
@@ -182,7 +181,7 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
               return (
                 <div 
                   key={idx}
-                  className="bg-slate-800/90 border border-slate-700/80 hover:border-slate-600 rounded-xl p-3 sm:p-3.5 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
+                  className="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 hover:border-sky-400 dark:hover:border-slate-600 rounded-xl p-3 sm:p-3.5 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm hover:shadow"
                 >
                   <div className="flex items-start gap-3 flex-1">
                     <div className={`w-9 h-9 rounded-lg bg-gradient-to-tr ${contact.color} flex items-center justify-center text-white shrink-0 shadow-md`}>
@@ -190,18 +189,21 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
                     </div>
                     <div className="space-y-0.5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="text-xs sm:text-sm font-bold text-white">
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                           {contact.name}
                         </h4>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${contact.badgeColor}`}>
                           {contact.badge}
                         </span>
                       </div>
-                      <p className="text-[11px] text-sky-400 font-semibold">
+                      <p className="text-[11px] text-sky-600 dark:text-sky-400 font-bold">
                         {contact.category}
                       </p>
-                      <p className="text-[11px] text-slate-300">
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300">
                         {contact.description}
+                      </p>
+                      <p className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 pt-0.5">
+                        {contact.phone}
                       </p>
                     </div>
                   </div>
@@ -210,17 +212,17 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
                   <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                     <button
                       onClick={() => handleCopy(contact.phone, idx)}
-                      className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-lg border border-slate-600 flex items-center gap-1.5 transition active:scale-95"
+                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-600 flex items-center gap-1.5 transition active:scale-95 shadow-sm"
                       title="Copiar número"
                     >
                       {isCopied ? (
                         <>
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-400">¡Copiado!</span>
+                          <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">¡Copiado!</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3.5 h-3.5 text-slate-300" />
+                          <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-300" />
                           <span>Copiar</span>
                         </>
                       )}
@@ -241,10 +243,10 @@ export const EmergencyContactsModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="bg-slate-950/80 border-t border-slate-800 px-4 py-2.5 flex items-center justify-between text-[11px] text-slate-400">
+        <div className="bg-slate-50 dark:bg-slate-950/80 border-t border-slate-200 dark:border-slate-800 px-4 py-2.5 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
           <span>COE Provincial y Cantonal de Esmeraldas</span>
-          <span className="text-emerald-400 font-semibold flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
             Canal de Auxilio Rápido Activo
           </span>
         </div>
