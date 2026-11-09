@@ -2,7 +2,10 @@ from django.urls import path
 from .views import (
     FamiliasCensoListCreateAPIView,
     VerificarCensoCiudadanoAPIView,
-    CatalogoSuministrosListAPIView,
+    BodegasAcopioListCreateAPIView,
+    BodegaAcopioDetailAPIView,
+    CatalogoSuministrosListCreateAPIView,
+    CatalogoSuministroDetailAPIView,
     InventarioBodegasStockAPIView
 )
 
@@ -12,8 +15,15 @@ urlpatterns = [
     # Verificación de censo ciudadano por cédula (Caso A / Caso B)
     path('censo-familias/verificar/<str:cedula>/', VerificarCensoCiudadanoAPIView.as_view(), name='humanitaria-censo-verificar'),
     path('censo-familias/verificar/', VerificarCensoCiudadanoAPIView.as_view(), name='humanitaria-censo-verificar-param'),
-    # Catálogo de kits
-    path('suministros/', CatalogoSuministrosListAPIView.as_view(), name='humanitaria-suministros'),
+    
+    # Bodegas de Acopio CRUD
+    path('bodegas/', BodegasAcopioListCreateAPIView.as_view(), name='bodegas-list-create'),
+    path('bodegas/<int:pk>/', BodegaAcopioDetailAPIView.as_view(), name='bodega-detail'),
+
+    # Catálogo de Kits / Suministros CRUD
+    path('suministros/', CatalogoSuministrosListCreateAPIView.as_view(), name='humanitaria-suministros'),
+    path('suministros/<int:pk>/', CatalogoSuministroDetailAPIView.as_view(), name='suministro-detail'),
+
     # Inventarios por bodega
     path('inventario/', InventarioBodegasStockAPIView.as_view(), name='humanitaria-inventario'),
 ]

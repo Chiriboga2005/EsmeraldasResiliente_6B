@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   Activity, 
@@ -6,16 +6,27 @@ import {
   AlertTriangle, 
   Home, 
   HeartHandshake, 
-  Layers
+  Layers,
+  ShieldAlert,
+  PhoneCall
 } from 'lucide-react';
+import { EmergencyContactsModal } from '../common/EmergencyContactsModal';
 
 export const Sidebar = () => {
+  const [showContactsModal, setShowContactsModal] = useState(false);
+
   const navItems = [
     {
       to: '/',
       label: 'Sala de Crisis (COE)',
       icon: Activity,
       badge: 'En Vivo',
+    },
+    {
+      to: '/incidentes',
+      label: 'Seguimiento Incidentes',
+      icon: ShieldAlert,
+      badge: 'Módulo 3',
     },
     {
       to: '/reportes',
@@ -88,11 +99,33 @@ export const Sidebar = () => {
             Aiven PostGIS (EPSG:4326) conectado. Polígonos de susceptibilidad y ríos Teaone/Esmeraldas cargados.
           </p>
         </div>
+
+        {/* Botón Destacado: Contactos de Emergencia (Directorio Rápido) */}
+        <div>
+          <button
+            onClick={() => setShowContactsModal(true)}
+            className="w-full py-2.5 px-3 bg-gradient-to-r from-red-600/90 to-rose-700/90 hover:from-red-500 hover:to-rose-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-600/20 border border-red-500/30 flex items-center justify-between transition active:scale-95 group"
+          >
+            <div className="flex items-center gap-2.5">
+              <PhoneCall className="w-4 h-4 text-white group-hover:animate-bounce" />
+              <span>Contactos de Emergencia</span>
+            </div>
+            <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-black uppercase">
+              COE
+            </span>
+          </button>
+        </div>
       </div>
 
       <div className="p-4 border-t border-crisis-700 text-center text-[11px] text-slate-500">
         Municipio de Esmeraldas • COE Cantonal
       </div>
+
+      {/* Modal Directorio de Emergencia */}
+      <EmergencyContactsModal
+        isOpen={showContactsModal}
+        onClose={() => setShowContactsModal(false)}
+      />
     </aside>
   );
 };

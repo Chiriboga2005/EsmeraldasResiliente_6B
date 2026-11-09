@@ -646,15 +646,6 @@ export const CrisisRoomPage = () => {
               >
                 OSM
               </button>
-              <button
-                onClick={() => setBaseMap('carto')}
-                className={`px-2.5 py-1 rounded-lg transition text-[11px] font-bold ${
-                  baseMap === 'carto' ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-300' : 'text-slate-400 hover:text-white'
-                }`}
-                title="Carto Voyager CDN"
-              >
-                Carto Voyager
-              </button>
             </div>
 
             <button

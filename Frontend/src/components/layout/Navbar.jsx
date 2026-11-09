@@ -1,12 +1,14 @@
 import React from 'react';
-import { Shield, Wifi, WifiOff, RefreshCw, User, LogOut } from 'lucide-react';
+import { Shield, Wifi, WifiOff, RefreshCw, User, LogOut, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useOffline } from '../../context/OfflineContext';
+import { useTheme } from '../../context/ThemeContext';
 import { Link } from 'react-router-dom';
 
 export const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const { isOnline, pendingCount, isSyncing, syncNow } = useOffline();
+  const { theme, toggleTheme, isLight } = useTheme();
 
   return (
     <header className="bg-crisis-800 border-b border-crisis-700 px-4 py-3 flex items-center justify-between shadow-md">
@@ -32,6 +34,25 @@ export const Navbar = () => {
       <div className="flex items-center space-x-4">
         {/* Conectividad */}
         <div className="flex items-center space-x-2 text-xs">
+          {/* Selector de Tema Claro / Oscuro */}
+          <button
+            onClick={toggleTheme}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-700/60 hover:bg-slate-700 text-slate-200 border border-slate-600 font-medium transition active:scale-95 shadow-sm"
+            title={isLight ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+          >
+            {isLight ? (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
+                <span className="text-[11px] font-bold">Modo Claro</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-3.5 h-3.5 text-sky-300" />
+                <span className="text-[11px] font-bold">Modo Oscuro</span>
+              </>
+            )}
+          </button>
+
           {isOnline ? (
             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
               <Wifi className="w-3.5 h-3.5" /> Online

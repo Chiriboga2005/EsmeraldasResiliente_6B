@@ -44,3 +44,34 @@ class CrearReporteSerializer(serializers.ModelSerializer):
         validated_data['ubicacion'] = Point(lon, lat, srid=4326)
         return super().create(validated_data)
 
+class ReporteIncidenteListSerializer(serializers.ModelSerializer):
+    fotos = FotoIncidenteSerializer(many=True, read_only=True)
+    usuario_nombre = serializers.SerializerMethodField()
+    latitud = serializers.SerializerMethodField()
+    longitud = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ReporteIncidente
+        fields = [
+            'id', 'tipo_evento', 'nivel_gravedad', 'descripcion',
+            'personas_atrapadas', 'familias_afectadas', 'estimacion_danos_vivienda',
+            'estado', 'es_simulacion', 'sincronizado_offline',
+            'fecha_incidente', 'fecha_recepcion_servidor', 'fecha_actualizacion',
+            'fotos', 'usuario_nombre', 'latitud', 'longitud'
+        ]
+
+    def get_usuario_nombre(self, obj):
+        return obj.usuario.get_full_name() if obj.usuario else 'Ciudadano Anónimo / Móvil'
+
+    def get_latitud(self, obj):
+        return obj.ubicacion.y if obj.ubicacion else None
+
+    def get_longitud(self, obj):
+        return obj.ubicacion.x if obj.ubicacion else None
+
+class ActualizarEstadoIncidenteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReporteIncidente
+        fields = ['estado', 'nivel_gravedad', 'descripcion', 'personas_atrapadas', 'familias_afectadas']
+
+

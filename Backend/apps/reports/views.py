@@ -2,10 +2,13 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils import timezone
+from django.db.models import Sum, Count, Q
 from .models import ReporteIncidente
 from .serializers import (
     ReporteIncidenteGeoSerializer,
-    CrearReporteSerializer
+    CrearReporteSerializer,
+    ReporteIncidenteListSerializer,
+    ActualizarEstadoIncidenteSerializer
 )
 
 class ReportesListGeoJSONAPIView(generics.ListAPIView):
@@ -89,4 +92,76 @@ class SincronizarLoteOfflineAPIView(APIView):
             'actualizados_idempotentes': actualizados,
             'errores': errores
         }, status=status.HTTP_200_OK if not errores else status.HTTP_207_MULTI_STATUS)
+
+class ReportesTablaListAPIView(generics.ListAPIView):
+    """
+    Módulo 3: Listado tabular de incidentes con filtros de estado:
+    atendidos, pendientes, en proceso, descartados.
+    """
+    serializer_class = ReporteIncidenteListSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        qs = ReporteIncidente.objects.all().select_related('usuario').prefetch_related('fotos')
+        estado = self.request.query_params.get('estado')
+        gravedad = self.request.query_params.get('gravedad')
+        simulacion = self.request.query_params.get('simulacion')
+        q = self.request.query_params.get('q')
+
+        if estado and estado.upper() != 'TODOS':
+            qs = qs.filter(estado=estado.upper())
+        if gravedad and gravedad.upper() != 'TODAS':
+            qs = qs.filter(nivel_gravedad=gravedad.upper())
+        if simulacion is not None and simulacion != '':
+            qs = qs.filter(es_simulacion=(simulacion.lower() == 'true'))
+        if q:
+            qs = qs.filter(Q(descripcion__icontains=q) | Q(tipo_evento__icontains=q))
+
+        return qs.order_by('-fecha_incidente')
+
+class ReporteIncidenteDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Módulo 3: Consulta, actualización de estado (PENDIENTE, EN_PROCESO, ATENDIDO)
+    y eliminación de incidentes por el COE / Administrador.
+    """
+    queryset = ReporteIncidente.objects.all()
+    serializer_class = ReporteIncidenteListSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return ActualizarEstadoIncidenteSerializer
+        return ReporteIncidenteListSerializer
+
+class ReportesKPIsAPIView(APIView):
+    """
+    Módulo 3: Generación de estadísticas e indicadores de gestión (KPIs) en tiempo real:
+    Total, Pendientes, En Proceso, Atendidos, Críticos, Personas y Familias.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        total = ReporteIncidente.objects.count()
+        pendientes = ReporteIncidente.objects.filter(estado='PENDIENTE').count()
+        en_proceso = ReporteIncidente.objects.filter(estado='EN_PROCESO').count()
+        atendidos = ReporteIncidente.objects.filter(estado='ATENDIDO').count()
+        descartados = ReporteIncidente.objects.filter(estado='DESCARTADO').count()
+        criticos = ReporteIncidente.objects.filter(nivel_gravedad='CRITICO').count()
+
+        aggs = ReporteIncidente.objects.aggregate(
+            total_atrapadas=Sum('personas_atrapadas'),
+            total_familias=Sum('familias_afectadas')
+        )
+
+        return Response({
+            'total': total,
+            'pendientes': pendientes,
+            'en_proceso': en_proceso,
+            'atendidos': atendidos,
+            'descartados': descartados,
+            'criticos': criticos,
+            'personas_atrapadas': aggs.get('total_atrapadas') or 0,
+            'familias_afectadas': aggs.get('total_familias') or 0,
+            'tasa_resolucion': round((atendidos / total * 100), 1) if total > 0 else 0
+        })
 

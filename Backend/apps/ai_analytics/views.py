@@ -90,10 +90,22 @@ class SimularEscenarioAPIView(APIView):
     permission_classes = [AllowAny]
     def get(self, request):
         _, _, _, _, _, sim = get_services()
-        lluvia = float(request.query_params.get('lluvia_24h', 120.0))
+        lluvia_param = request.query_params.get('lluvia_24h') or request.query_params.get('lluvia_mm') or 120.0
+        try:
+            lluvia = float(lluvia_param)
+        except ValueError:
+            lluvia = 120.0
+
         nivel_rio = request.query_params.get('nivel_rio')
-        nivel_rio = float(nivel_rio) if nivel_rio else None
-        resultado = sim.simular_escenario_precipitacion(lluvia, nivel_rio)
+        nivel_rio_val = None
+        if nivel_rio:
+            try:
+                nivel_rio_val = float(nivel_rio)
+            except ValueError:
+                nivel_rio_str = str(nivel_rio).upper()
+                nivel_rio_val = 5.5 if 'ALT' in nivel_rio_str or 'CRIT' in nivel_rio_str else 3.5
+
+        resultado = sim.simular_escenario_precipitacion(lluvia, nivel_rio_val)
         return Response(resultado)
 
 class ClasificarIncidenteAPIView(APIView):

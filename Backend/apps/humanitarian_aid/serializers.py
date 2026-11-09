@@ -67,6 +67,41 @@ class FamiliaCensoSimpleSerializer(serializers.ModelSerializer):
             validated_data['codigo_censo'] = f"CENSO-ESM-{uuid.uuid4().hex[:6].upper()}"
         return super().create(validated_data)
 
+class BodegaAcopioSerializer(serializers.ModelSerializer):
+    lat = serializers.FloatField(write_only=True, required=False, allow_null=True)
+    lon = serializers.FloatField(write_only=True, required=False, allow_null=True)
+    latitud = serializers.SerializerMethodField(read_only=True)
+    longitud = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = BodegaAcopio
+        fields = [
+            'id', 'nombre', 'responsable', 'telefono', 'direccion', 
+            'activo', 'lat', 'lon', 'latitud', 'longitud'
+        ]
+
+    def get_latitud(self, obj):
+        return obj.ubicacion.y if obj.ubicacion else None
+
+    def get_longitud(self, obj):
+        return obj.ubicacion.x if obj.ubicacion else None
+
+    def create(self, validated_data):
+        lat = validated_data.pop('lat', None)
+        lon = validated_data.pop('lon', None)
+        if lat is not None and lon is not None:
+            validated_data['ubicacion'] = Point(float(lon), float(lat), srid=4326)
+        else:
+            validated_data['ubicacion'] = Point(-79.654, 0.968, srid=4326)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        lat = validated_data.pop('lat', None)
+        lon = validated_data.pop('lon', None)
+        if lat is not None and lon is not None:
+            instance.ubicacion = Point(float(lon), float(lat), srid=4326)
+        return super().update(instance, validated_data)
+
 class SuministroCatalogoSerializer(serializers.ModelSerializer):
     class Meta:
         model = SuministroCatalogo

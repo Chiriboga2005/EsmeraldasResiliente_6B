@@ -6,13 +6,36 @@ import {
   PlusCircle, 
   AlertCircle, 
   CheckCircle2, 
-  Boxes 
+  Boxes,
+  Building2,
+  Edit,
+  Trash2,
+  Phone,
+  MapPin,
+  ShieldCheck,
+  Plus,
+  X,
+  RefreshCw,
+  Search
 } from 'lucide-react';
 import { humanitarianApi } from '../../api/humanitarianApi';
+import { useAuth } from '../../context/AuthContext';
 
 export const HumanitarianPage = () => {
-  const [tab, setTab] = useState('censo'); // 'censo' o 'suministros'
+  const { user, isAuthenticated } = useAuth();
+
+  // Comprobar rol de administrador / operador
+  const userRole = (user?.rol || user?.properties?.rol || '').toUpperCase();
+  const userName = (user?.username || user?.properties?.username || '').toLowerCase();
+  const isAdmin = isAuthenticated && (
+    userRole === 'ADMINISTRADOR' || 
+    userRole === 'OPERADOR' || 
+    userName === 'admin'
+  );
+
+  const [tab, setTab] = useState('censo'); // 'censo' | 'bodegas' | 'suministros'
   const [familias, setFamilias] = useState([]);
+  const [bodegas, setBodegas] = useState([]);
   const [suministros, setSuministros] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,17 +54,43 @@ export const HumanitarianPage = () => {
     danos_vivienda: 'TOTAL',
     requiere_evacuacion_inmediata: true,
   });
-
   const [censoGuardado, setCensoGuardado] = useState(false);
+
+  // Modales CRUD Bodega
+  const [showBodegaModal, setShowBodegaModal] = useState(false);
+  const [editingBodega, setEditingBodega] = useState(null);
+  const [bodegaForm, setBodegaForm] = useState({
+    nombre: '',
+    responsable: '',
+    telefono: '',
+    direccion: '',
+    lat: 0.968,
+    lon: -79.654,
+    activo: true
+  });
+
+  // Modales CRUD Kit / Suministro
+  const [showKitModal, setShowKitModal] = useState(false);
+  const [editingKit, setEditingKit] = useState(null);
+  const [kitForm, setKitForm] = useState({
+    codigo_sku: '',
+    nombre_suministro: '',
+    tipo: 'ALIMENTO',
+    unidad_medida: 'Kit Familiar',
+    peso_kg: 15.0,
+    descripcion: ''
+  });
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [fRes, sRes] = await Promise.allSettled([
+      const [fRes, bRes, sRes] = await Promise.allSettled([
         humanitarianApi.getCensoFamilias(),
+        humanitarianApi.getBodegas(),
         humanitarianApi.getSuministros(),
       ]);
       if (fRes.status === 'fulfilled') setFamilias(fRes.value || []);
+      if (bRes.status === 'fulfilled') setBodegas(bRes.value || []);
       if (sRes.status === 'fulfilled') setSuministros(sRes.value || []);
     } catch (err) {
       console.error('Error cargando asistencia humanitaria:', err);
@@ -54,12 +103,13 @@ export const HumanitarianPage = () => {
     loadData();
   }, []);
 
+  // Submit Censo
   const handleSubmitCenso = async (e) => {
     e.preventDefault();
     try {
       await humanitarianApi.crearCensoFamilia(nuevoCenso);
       setCensoGuardado(true);
-      loadData();
+      await loadData();
       setTimeout(() => setCensoGuardado(false), 4000);
       setNuevoCenso({
         codigo_censo: `CENSO-ESM-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -80,68 +130,200 @@ export const HumanitarianPage = () => {
     }
   };
 
+  // CRUD BODEGAS
+  const handleOpenCreateBodega = () => {
+    setEditingBodega(null);
+    setBodegaForm({
+      nombre: '',
+      responsable: '',
+      telefono: '',
+      direccion: '',
+      lat: 0.968,
+      lon: -79.654,
+      activo: true
+    });
+    setShowBodegaModal(true);
+  };
+
+  const handleOpenEditBodega = (b) => {
+    setEditingBodega(b);
+    setBodegaForm({
+      nombre: b.nombre,
+      responsable: b.responsable || '',
+      telefono: b.telefono || '',
+      direccion: b.direccion || '',
+      lat: b.latitud || 0.968,
+      lon: b.longitud || -79.654,
+      activo: b.activo !== false
+    });
+    setShowBodegaModal(true);
+  };
+
+  const handleSaveBodega = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingBodega) {
+        await humanitarianApi.actualizarBodega(editingBodega.id, bodegaForm);
+      } else {
+        await humanitarianApi.crearBodega(bodegaForm);
+      }
+      setShowBodegaModal(false);
+      await loadData();
+    } catch (err) {
+      alert('Error guardando bodega: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleDeleteBodega = async (id) => {
+    if (window.confirm('¿Confirmas que deseas eliminar permanentemente esta bodega de acopio?')) {
+      try {
+        await humanitarianApi.eliminarBodega(id);
+        await loadData();
+      } catch (err) {
+        alert('Error eliminando bodega: ' + (err.response?.data?.detail || err.message));
+      }
+    }
+  };
+
+  // CRUD KITS / SUMINISTROS
+  const handleOpenCreateKit = () => {
+    setEditingKit(null);
+    setKitForm({
+      codigo_sku: `KIT-${Math.floor(100 + Math.random() * 900)}`,
+      nombre_suministro: '',
+      tipo: 'ALIMENTO',
+      unidad_medida: 'Kit Familiar',
+      peso_kg: 15.0,
+      descripcion: ''
+    });
+    setShowKitModal(true);
+  };
+
+  const handleOpenEditKit = (kit) => {
+    setEditingKit(kit);
+    setKitForm({
+      codigo_sku: kit.codigo_sku,
+      nombre_suministro: kit.nombre_suministro,
+      tipo: kit.tipo,
+      unidad_medida: kit.unidad_medida,
+      peso_kg: kit.peso_kg || 0,
+      descripcion: kit.descripcion || ''
+    });
+    setShowKitModal(true);
+  };
+
+  const handleSaveKit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingKit) {
+        await humanitarianApi.actualizarSuministro(editingKit.id, kitForm);
+      } else {
+        await humanitarianApi.crearSuministro(kitForm);
+      }
+      setShowKitModal(false);
+      await loadData();
+    } catch (err) {
+      alert('Error guardando suministro/kit: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleDeleteKit = async (id) => {
+    if (window.confirm('¿Confirmas que deseas eliminar este kit del catálogo oficial?')) {
+      try {
+        await humanitarianApi.eliminarSuministro(id);
+        await loadData();
+      } catch (err) {
+        alert('Error eliminando suministro: ' + (err.response?.data?.detail || err.message));
+      }
+    }
+  };
+
   return (
-    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+      
       {/* Cabecera y Selector de Pestañas */}
-      <div className="bg-crisis-800 border border-crisis-700 p-5 rounded-xl shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-crisis-800 border border-crisis-700 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
-            <HeartHandshake className="w-6 h-6 text-sky-400" />
-            Asistencia Humanitaria y Censo de Damnificados
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              Módulos 4 & 5 • Asistencia Humanitaria
+            </span>
+            {isAdmin && (
+              <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" /> Modo CRUD Administrador Activo
+              </span>
+            )}
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2.5 mt-1">
+            <HeartHandshake className="w-7 h-7 text-sky-400" />
+            Asistencia Humanitaria, Bodegas y Kits
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Ficha censal de hogares afectados, vulnerabilidad familiar y control de suministros en bodega.
+          <p className="text-xs text-slate-400 mt-0.5">
+            Gestión de padrón de familias damnificadas, bodegas de acopio y catálogo de provisiones del COE.
           </p>
         </div>
 
-        <div className="flex bg-crisis-900 p-1 rounded-lg border border-crisis-700">
+        {/* Selector de Pestañas */}
+        <div className="flex flex-wrap bg-crisis-900 p-1 rounded-xl border border-crisis-700 text-xs gap-1">
           <button
             onClick={() => setTab('censo')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
               tab === 'censo'
                 ? 'bg-sky-600 text-white shadow'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Users className="w-3.5 h-3.5" /> Ficha Censal
+            <Users className="w-4 h-4" /> Ficha Censal ({familias.length})
+          </button>
+          <button
+            onClick={() => setTab('bodegas')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+              tab === 'bodegas'
+                ? 'bg-sky-600 text-white shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Building2 className="w-4 h-4" /> Bodegas de Acopio ({bodegas.length})
           </button>
           <button
             onClick={() => setTab('suministros')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
               tab === 'suministros'
                 ? 'bg-sky-600 text-white shadow'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Boxes className="w-3.5 h-3.5" /> Bodegas & Kits
+            <Boxes className="w-4 h-4" /> Catálogo de Kits ({suministros.length})
           </button>
         </div>
       </div>
 
       {censoGuardado && (
-        <div className="p-3.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>Ficha de censo registrada correctamente en el padrón humanitario.</span>
         </div>
       )}
 
-      {tab === 'censo' ? (
+      {/* ========================================================================= */}
+      {/* PESTAÑA 1: FICHA CENSAL FAMILIAR */}
+      {/* ========================================================================= */}
+      {tab === 'censo' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Formulario de Levantamiento Censal */}
           <form
             onSubmit={handleSubmitCenso}
-            className="lg:col-span-2 bg-crisis-800 border border-crisis-700 rounded-xl p-5 space-y-4 shadow-xl"
+            className="lg:col-span-2 bg-crisis-800 border border-crisis-700 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xl"
           >
-            <div className="flex items-center justify-between border-b border-crisis-700 pb-2">
+            <div className="flex items-center justify-between border-b border-crisis-700 pb-2.5">
               <span className="text-xs font-bold text-sky-400 uppercase tracking-wider">
-                Nueva Ficha Familiar
+                Nueva Ficha Familiar Damnificada
               </span>
               <span className="text-xs font-mono text-slate-400">
                 {nuevoCenso.codigo_censo}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label className="text-xs text-slate-300 font-semibold">
                   Nombre Jefe de Hogar
@@ -152,7 +334,7 @@ export const HumanitarianPage = () => {
                   placeholder="ej: María Elena Bone"
                   value={nuevoCenso.jefe_familia_nombre}
                   onChange={(e) => setNuevoCenso({ ...nuevoCenso, jefe_familia_nombre: e.target.value })}
-                  className="w-full mt-1 bg-crisis-900 border border-crisis-600 rounded px-2.5 py-1.5 text-xs text-white"
+                  className="w-full mt-1 bg-crisis-900 border border-crisis-600 rounded-lg px-3 py-2 text-xs text-white"
                 />
               </div>
               <div>
@@ -166,12 +348,12 @@ export const HumanitarianPage = () => {
                   placeholder="ej: 0801234567"
                   value={nuevoCenso.jefe_familia_cedula}
                   onChange={(e) => setNuevoCenso({ ...nuevoCenso, jefe_familia_cedula: e.target.value })}
-                  className="w-full mt-1 bg-crisis-900 border border-crisis-600 rounded px-2.5 py-1.5 text-xs text-white"
+                  className="w-full mt-1 bg-crisis-900 border border-crisis-600 rounded-lg px-3 py-2 text-xs text-white"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label className="text-xs text-slate-300 font-semibold">
                   Teléfono Celular
@@ -181,7 +363,7 @@ export const HumanitarianPage = () => {
                   placeholder="ej: 0991234567"
                   value={nuevoCenso.telefono_contacto}
                   onChange={(e) => setNuevoCenso({ ...nuevoCenso, telefono_contacto: e.target.value })}
-                  className="w-full mt-1 bg-crisis-900 border border-crisis-600 rounded px-2.5 py-1.5 text-xs text-white"
+                  className="w-full mt-1 bg-crisis-900 border border-crisis-600 rounded-lg px-3 py-2 text-xs text-white"
                 />
               </div>
               <div>
@@ -192,25 +374,25 @@ export const HumanitarianPage = () => {
                   type="text"
                   value={nuevoCenso.barrio_sector}
                   onChange={(e) => setNuevoCenso({ ...nuevoCenso, barrio_sector: e.target.value })}
-                  className="w-full mt-1 bg-crisis-900 border border-crisis-600 rounded px-2.5 py-1.5 text-xs text-white"
+                  className="w-full mt-1 bg-crisis-900 border border-crisis-600 rounded-lg px-3 py-2 text-xs text-white"
                 />
               </div>
             </div>
 
             {/* Composición Familiar */}
-            <div className="bg-crisis-900/60 p-3 rounded-lg border border-crisis-700 space-y-2">
+            <div className="bg-crisis-900/60 p-4 rounded-xl border border-crisis-700 space-y-2.5">
               <span className="text-xs font-bold text-slate-300">
                 Indicadores de Vulnerabilidad en el Hogar
               </span>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-2.5">
                 <div>
-                  <label className="text-[11px] text-slate-400">Total Integrantes</label>
+                  <label className="text-[11px] text-slate-400">Total Miembros</label>
                   <input
                     type="number"
                     min="1"
                     value={nuevoCenso.numero_integrantes}
                     onChange={(e) => setNuevoCenso({ ...nuevoCenso, numero_integrantes: Number(e.target.value) })}
-                    className="w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1 text-xs text-center text-white"
+                    className="w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1.5 text-xs text-center text-white"
                   />
                 </div>
                 <div>
@@ -220,7 +402,7 @@ export const HumanitarianPage = () => {
                     min="0"
                     value={nuevoCenso.ninos_menores_5}
                     onChange={(e) => setNuevoCenso({ ...nuevoCenso, ninos_menores_5: Number(e.target.value) })}
-                    className="w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1 text-xs text-center text-white"
+                    className="w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1.5 text-xs text-center text-white"
                   />
                 </div>
                 <div>
@@ -230,7 +412,7 @@ export const HumanitarianPage = () => {
                     min="0"
                     value={nuevoCenso.adultos_mayores}
                     onChange={(e) => setNuevoCenso({ ...nuevoCenso, adultos_mayores: Number(e.target.value) })}
-                    className="w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1 text-xs text-center text-white"
+                    className="w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1.5 text-xs text-center text-white"
                   />
                 </div>
                 <div>
@@ -240,7 +422,7 @@ export const HumanitarianPage = () => {
                     min="0"
                     value={nuevoCenso.personas_discapacidad}
                     onChange={(e) => setNuevoCenso({ ...nuevoCenso, personas_discapacidad: Number(e.target.value) })}
-                    className="w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1 text-xs text-center text-white"
+                    className="w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1.5 text-xs text-center text-white"
                   />
                 </div>
               </div>
@@ -248,24 +430,24 @@ export const HumanitarianPage = () => {
 
             <button
               type="submit"
-              className="w-full py-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 font-bold text-xs text-white transition flex items-center justify-center gap-1.5 shadow"
+              className="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 font-bold text-xs text-white transition flex items-center justify-center gap-2 shadow-lg"
             >
               <PlusCircle className="w-4 h-4" /> Registrar Familia Damnificada
             </button>
           </form>
 
           {/* Resumen Lateral de Familias Censadas */}
-          <div className="bg-crisis-800 border border-crisis-700 rounded-xl p-5 shadow-xl space-y-4">
+          <div className="bg-crisis-800 border border-crisis-700 rounded-2xl p-5 shadow-xl space-y-4">
             <h3 className="font-bold text-white text-sm flex items-center gap-2">
               <Users className="w-4 h-4 text-sky-400" />
-              Padrón Censal ({familias.length})
+              Padrón de Censados ({familias.length})
             </h3>
-            <div className="space-y-2.5 max-h-[350px] overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
               {familias.length > 0 ? (
                 familias.map((f, i) => (
                   <div
                     key={i}
-                    className="p-2.5 rounded bg-crisis-900 border border-crisis-700 text-xs space-y-1"
+                    className="p-3 rounded-xl bg-crisis-900 border border-crisis-700 text-xs space-y-1 hover:border-slate-600 transition"
                   >
                     <div className="flex justify-between font-semibold text-slate-200">
                       <span>{f.jefe_familia_nombre}</span>
@@ -280,40 +462,430 @@ export const HumanitarianPage = () => {
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-slate-400 italic text-center py-6">
+                <p className="text-xs text-slate-400 italic text-center py-8">
                   No hay familias censadas registradas aún.
                 </p>
               )}
             </div>
           </div>
         </div>
-      ) : (
-        /* Catálogo de Suministros */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {suministros.map((item, idx) => (
-            <div
-              key={idx}
-              className="bg-crisis-800 border border-crisis-700 rounded-xl p-4 shadow-lg space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-crisis-700 text-sky-400 border border-slate-600">
-                  {item.codigo_sku}
-                </span>
-                <span className="text-[10px] uppercase font-bold text-slate-400">
-                  {item.tipo}
-                </span>
-              </div>
-              <h4 className="font-bold text-white text-sm">{item.nombre_suministro}</h4>
-              <p className="text-xs text-slate-400">{item.descripcion}</p>
-              <div className="pt-2 border-t border-crisis-700 flex justify-between text-xs text-slate-300">
-                <span>Unidad: {item.unidad_medida}</span>
-                <span className="font-bold">{item.peso_kg} kg</span>
-              </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PESTAÑA 2: BODEGAS DE ACOPIO (CON CRUD ADMINISTRADOR) */}
+      {/* ========================================================================= */}
+      {tab === 'bodegas' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-crisis-800 border border-crisis-700 p-4 rounded-xl shadow">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-amber-400" />
+                Red de Bodegas y Centros de Acopio COE
+              </h3>
+              <p className="text-xs text-slate-400">
+                Almacenes logísticos autorizados para la recepción y despacho de ayuda humanitaria.
+              </p>
             </div>
-          ))}
+
+            {isAdmin && (
+              <button
+                onClick={handleOpenCreateBodega}
+                className="px-3.5 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Nueva Bodega</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {bodegas.length === 0 ? (
+              <div className="col-span-full text-center py-12 bg-crisis-800 rounded-2xl border border-crisis-700 text-slate-400 text-xs">
+                No hay bodegas registradas actualmente.
+              </div>
+            ) : (
+              bodegas.map((bodega) => (
+                <div
+                  key={bodega.id}
+                  className="bg-crisis-800 border border-crisis-700 hover:border-slate-500 rounded-xl p-4 sm:p-5 shadow-lg space-y-3 transition flex flex-col justify-between"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        bodega.activo !== false
+                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                          : 'bg-red-500/15 text-red-400 border-red-500/30'
+                      }`}>
+                        {bodega.activo !== false ? '● Operativa' : '○ Inactiva'}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        ID: #{bodega.id}
+                      </span>
+                    </div>
+
+                    <h4 className="text-sm font-bold text-white">
+                      {bodega.nombre}
+                    </h4>
+
+                    <div className="text-xs text-slate-300 space-y-1">
+                      <p className="flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-sky-400" />
+                        <span className="text-slate-400">Responsable:</span> {bodega.responsable || 'No asignado'}
+                      </p>
+                      {bodega.telefono && (
+                        <p className="flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-slate-400">Teléfono:</span> {bodega.telefono}
+                        </p>
+                      )}
+                      <p className="flex items-start gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                        <span className="text-slate-400">Dirección:</span> {bodega.direccion || 'Esmeraldas'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Acciones CRUD si es Admin */}
+                  {isAdmin && (
+                    <div className="pt-3 border-t border-crisis-700/80 flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleOpenEditBodega(bodega)}
+                        className="px-2.5 py-1 text-xs text-slate-300 hover:text-white bg-crisis-700 hover:bg-crisis-600 rounded-lg border border-slate-600 flex items-center gap-1 transition"
+                      >
+                        <Edit className="w-3 h-3 text-sky-400" />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBodega(bodega.id)}
+                        className="px-2.5 py-1 text-xs text-red-400 hover:text-white bg-crisis-700 hover:bg-red-600 rounded-lg border border-red-500/30 flex items-center gap-1 transition"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Eliminar</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* PESTAÑA 3: CATÁLOGO DE KITS Y PROVISIONES (CON CRUD ADMINISTRADOR) */}
+      {/* ========================================================================= */}
+      {tab === 'suministros' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-crisis-800 border border-crisis-700 p-4 rounded-xl shadow">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Boxes className="w-4 h-4 text-sky-400" />
+                Catálogo Oficial de Kits y Provisiones Humanitarias
+              </h3>
+              <p className="text-xs text-slate-400">
+                Kits estandarizados por el COE Cantonal según directrices del Servicio Nacional de Gestión de Riesgos.
+              </p>
+            </div>
+
+            {isAdmin && (
+              <button
+                onClick={handleOpenCreateKit}
+                className="px-3.5 py-2 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Nuevo Kit / Suministro</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {suministros.map((item) => (
+              <div
+                key={item.id}
+                className="bg-crisis-800 border border-crisis-700 hover:border-slate-500 rounded-xl p-4 shadow-lg space-y-3 transition flex flex-col justify-between"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-crisis-700 text-sky-400 border border-slate-600">
+                      {item.codigo_sku}
+                    </span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400">
+                      {item.tipo}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-white text-sm">{item.nombre_suministro}</h4>
+                  <p className="text-xs text-slate-400">{item.descripcion}</p>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-crisis-700">
+                  <div className="flex justify-between text-xs text-slate-300">
+                    <span>Unidad: {item.unidad_medida}</span>
+                    <span className="font-bold text-sky-300">{item.peso_kg} kg</span>
+                  </div>
+
+                  {isAdmin && (
+                    <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-crisis-700/60">
+                      <button
+                        onClick={() => handleOpenEditKit(item)}
+                        className="px-2 py-1 text-[11px] text-slate-300 hover:text-white bg-crisis-700 hover:bg-crisis-600 rounded border border-slate-600 flex items-center gap-1 transition"
+                      >
+                        <Edit className="w-3 h-3 text-sky-400" />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteKit(item.id)}
+                        className="px-2 py-1 text-[11px] text-red-400 hover:text-white bg-crisis-700 hover:bg-red-600 rounded border border-red-500/30 flex items-center gap-1 transition"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Eliminar</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL FORMULARIO BODEGA (CREAR / EDITAR) */}
+      {/* ========================================================================= */}
+      {showBodegaModal && (
+        <div className="fixed inset-0 z-[1500] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-amber-400" />
+                {editingBodega ? 'Editar Bodega de Acopio' : 'Registrar Nueva Bodega'}
+              </h3>
+              <button
+                onClick={() => setShowBodegaModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBodega} className="space-y-3 text-xs">
+              <div>
+                <label className="text-slate-300 font-semibold">Nombre de la Bodega</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ej: Bodega Central COE - San Rafael"
+                  value={bodegaForm.nombre}
+                  onChange={(e) => setBodegaForm({ ...bodegaForm, nombre: e.target.value })}
+                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 font-semibold">Responsable Encargado</label>
+                  <input
+                    type="text"
+                    placeholder="ej: Ing. Marcos Quintero"
+                    value={bodegaForm.responsable}
+                    onChange={(e) => setBodegaForm({ ...bodegaForm, responsable: e.target.value })}
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 font-semibold">Teléfono Celular</label>
+                  <input
+                    type="text"
+                    placeholder="ej: 0991234567"
+                    value={bodegaForm.telefono}
+                    onChange={(e) => setBodegaForm({ ...bodegaForm, telefono: e.target.value })}
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-semibold">Dirección / Referencia</label>
+                <input
+                  type="text"
+                  placeholder="ej: Av. Kennedy y Olmedo"
+                  value={bodegaForm.direccion}
+                  onChange={(e) => setBodegaForm({ ...bodegaForm, direccion: e.target.value })}
+                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 font-semibold">Latitud GPS</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={bodegaForm.lat}
+                    onChange={(e) => setBodegaForm({ ...bodegaForm, lat: parseFloat(e.target.value) || 0 })}
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 font-semibold">Longitud GPS</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={bodegaForm.lon}
+                    onChange={(e) => setBodegaForm({ ...bodegaForm, lon: parseFloat(e.target.value) || 0 })}
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="activoBodega"
+                  checked={bodegaForm.activo}
+                  onChange={(e) => setBodegaForm({ ...bodegaForm, activo: e.target.checked })}
+                  className="rounded text-amber-500"
+                />
+                <label htmlFor="activoBodega" className="text-slate-300 cursor-pointer">
+                  Bodega operativa para despacho inmediato
+                </label>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowBodegaModal(false)}
+                  className="px-3 py-1.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg shadow"
+                >
+                  {editingBodega ? 'Guardar Cambios' : 'Crear Bodega'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL FORMULARIO KITS (CREAR / EDITAR) */}
+      {/* ========================================================================= */}
+      {showKitModal && (
+        <div className="fixed inset-0 z-[1500] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Boxes className="w-4 h-4 text-sky-400" />
+                {editingKit ? 'Editar Kit / Suministro' : 'Registrar Nuevo Kit'}
+              </h3>
+              <button
+                onClick={() => setShowKitModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveKit} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 font-semibold">Código SKU</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ej: KIT-ALIM-3D"
+                    value={kitForm.codigo_sku}
+                    onChange={(e) => setKitForm({ ...kitForm, codigo_sku: e.target.value })}
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 font-semibold">Tipo de Suministro</label>
+                  <select
+                    value={kitForm.tipo}
+                    onChange={(e) => setKitForm({ ...kitForm, tipo: e.target.value })}
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                  >
+                    <option value="ALIMENTO">Alimentos y Raciones</option>
+                    <option value="AGUA">Agua Potable e Hidratación</option>
+                    <option value="HIGIENE">Kit de Aseo e Higiene</option>
+                    <option value="REFUGIO">Colchones, Frazadas y Refugio</option>
+                    <option value="HERRAMIENTA">Herramientas y Limpieza</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-semibold">Nombre del Suministro</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ej: Kit de Alimentos Familiares (3 días)"
+                  value={kitForm.nombre_suministro}
+                  onChange={(e) => setKitForm({ ...kitForm, nombre_suministro: e.target.value })}
+                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 font-semibold">Unidad de Medida</label>
+                  <input
+                    type="text"
+                    placeholder="ej: Kit Familiar, Bidón, Caja"
+                    value={kitForm.unidad_medida}
+                    onChange={(e) => setKitForm({ ...kitForm, unidad_medida: e.target.value })}
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 font-semibold">Peso Aproximado (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={kitForm.peso_kg}
+                    onChange={(e) => setKitForm({ ...kitForm, peso_kg: parseFloat(e.target.value) || 0 })}
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-semibold">Descripción y Contenido del Kit</label>
+                <textarea
+                  rows="2"
+                  placeholder="Detalle de provisiones incluidas (arroz, aceite, atún, agua, etc.)"
+                  value={kitForm.descripcion}
+                  onChange={(e) => setKitForm({ ...kitForm, descripcion: e.target.value })}
+                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowKitModal(false)}
+                  className="px-3 py-1.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg shadow"
+                >
+                  {editingKit ? 'Guardar Cambios' : 'Crear Kit'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
-
+export default HumanitarianPage;

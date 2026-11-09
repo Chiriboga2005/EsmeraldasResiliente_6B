@@ -6,26 +6,172 @@
 
 :root {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #0b1120;
-  color: #f1f5f9;
   min-height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Fondo neutral para Leaflet: evita la pantalla negra al hacer zoom */
+/* ========================================================================= */
+/* TEMA CLARO (PREDETERMINADO / MODO CLARO GUBERNAMENTAL) */
+/* ========================================================================= */
+html.light, body.light {
+  color-scheme: light;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.light .bg-crisis-900 {
+  background-color: #f8fafc !important;
+}
+
+.light .bg-crisis-800 {
+  background-color: #ffffff !important;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+}
+
+.light .bg-crisis-700 {
+  background-color: #f1f5f9 !important;
+}
+
+.light .border-crisis-700,
+.light .border-crisis-600 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Contraste de Textos en Modo Claro */
+.light h1:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]),
+.light h2:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]),
+.light h3:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]),
+.light h4:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]),
+.light .text-white:not(button):not(a):not(span[class*="bg-"]):not(div[class*="bg-"]) {
+  color: #0f172a !important;
+}
+
+.light .text-slate-100,
+.light .text-slate-200 {
+  color: #1e293b !important;
+}
+
+.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+.light .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* Fondos sutiles oscuros adaptados a claro */
+.light .bg-slate-900,
+.light .bg-slate-800 {
+  background-color: #ffffff !important;
+}
+
+.light .border-slate-800,
+.light .border-slate-700 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Inputs, Textareas y Selects */
+.light input:not([type="checkbox"]):not([type="radio"]),
+.light select,
+.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light input::placeholder,
+.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Garantizar que los botones y tags con fondo mantengan texto blanco legible */
+.light button[class*="bg-sky-"],
+.light button[class*="bg-emerald-"],
+.light button[class*="bg-red-"],
+.light button[class*="bg-rose-"],
+.light button[class*="bg-amber-"],
+.light button[class*="bg-indigo-"],
+.light button[class*="bg-purple-"],
+.light a[class*="bg-sky-"],
+.light a[class*="bg-emerald-"],
+.light a[class*="bg-red-"],
+.light .text-white[class*="bg-"],
+.light [class*="from-sky-"],
+.light [class*="from-red-"],
+.light [class*="from-amber-"] {
+  color: #ffffff !important;
+}
+
+/* Popups Leaflet en Modo Claro */
+.light .leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
+}
+
+.light .leaflet-popup-tip {
+  background: #ffffff !important;
+}
+
+.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ========================================================================= */
+/* TEMA OSCURO */
+/* ========================================================================= */
+html.dark, body.dark {
+  color-scheme: dark;
+  background-color: #0b1120;
+  color: #f1f5f9;
+}
+
+.dark .leaflet-popup-content-wrapper {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .leaflet-popup-tip {
+  background: #1e293b !important;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* ========================================================================= */
+/* LEAFLET COMÚN */
+/* ========================================================================= */
 .leaflet-container {
   width: 100%;
   height: 100%;
-  background: #e2e8f0 !important; /* Tono cálido/neutro de mapa para que el zoom nunca se vea negro */
+  background: #e2e8f0 !important;
   font-family: inherit;
 }
 
-/* Transiciones suaves de teselas */
 .leaflet-tile-container {
   pointer-events: none;
 }
@@ -34,30 +180,7 @@ body {
   transition: opacity 0.18s ease-in-out;
 }
 
-.leaflet-popup-content-wrapper {
-  background: #1e293b !important;
-  color: #f8fafc !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
-  border: 1px solid #334155;
-}
-
-.leaflet-popup-tip {
-  background: #1e293b !important;
-}
-
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #0f172a;
-}
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
 }

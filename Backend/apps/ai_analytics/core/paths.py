@@ -1,26 +1,23 @@
 import os
 
 BASE_CORE_DIR = os.path.abspath(os.path.dirname(__file__))
+AI_APP_DIR = os.path.abspath(os.path.join(BASE_CORE_DIR, ".."))
 
 def get_data_path(filename):
-    for candidate in [
-        os.path.join(BASE_CORE_DIR, "..", "data", filename),
-        os.path.join(BASE_CORE_DIR, "..", "..", "data", filename),
-        os.path.join(BASE_CORE_DIR, "..", "..", "..", "Modulo6", "modulo6", "modulo6", "data", filename),
-    ]:
-        cand = os.path.abspath(candidate)
-        if os.path.exists(cand):
-            return cand
-    return os.path.abspath(os.path.join(BASE_CORE_DIR, "..", "data", filename))
+    """
+    Retorna la ruta absoluta de los datasets dentro de Backend/apps/ai_analytics/data/
+    """
+    path = os.path.join(AI_APP_DIR, "data", filename)
+    if os.path.exists(path):
+        return os.path.abspath(path)
+    return os.path.abspath(path)
 
 def get_model_path(filename=""):
-    for candidate in [
-        os.path.join(BASE_CORE_DIR, "..", "ml_models", filename),
-        os.path.join(BASE_CORE_DIR, "..", "..", "ml_models", filename),
-        os.path.join(BASE_CORE_DIR, "..", "..", "..", "Modulo6", "modulo6", "modulo6", "ml_models", filename),
-    ]:
-        cand = os.path.abspath(candidate)
-        if os.path.exists(cand):
-            return cand
-    return os.path.abspath(os.path.join(BASE_CORE_DIR, "..", "ml_models", filename))
+    """
+    Retorna la ruta absoluta de los modelos Scikit-Learn dentro de Backend/apps/ai_analytics/ml_models/
+    """
+    path = os.path.join(AI_APP_DIR, "ml_models", filename)
+    if os.path.exists(path):
+        return os.path.abspath(path)
+    return os.path.abspath(path)
 

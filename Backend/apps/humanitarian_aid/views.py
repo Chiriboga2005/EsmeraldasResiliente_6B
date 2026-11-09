@@ -1,10 +1,11 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import FamiliaCenso, SuministroCatalogo, InventarioBodega
+from .models import FamiliaCenso, BodegaAcopio, SuministroCatalogo, InventarioBodega
 from .serializers import (
     FamiliaCensoGeoSerializer,
     FamiliaCensoSimpleSerializer,
+    BodegaAcopioSerializer,
     SuministroCatalogoSerializer,
     InventarioBodegaSerializer
 )
@@ -76,15 +77,39 @@ class VerificarCensoCiudadanoAPIView(APIView):
             'mensaje': 'Aún usted no ha sido censado en el sistema de gestión de riesgos'
         }, status=status.HTTP_200_OK)
 
-class CatalogoSuministrosListAPIView(generics.ListAPIView):
+class BodegasAcopioListCreateAPIView(generics.ListCreateAPIView):
     """
-    Catálogo oficial de kits y provisiones humanitarias.
+    CRUD Bodegas de Acopio: Permite listar y registrar nuevas bodegas.
+    """
+    queryset = BodegaAcopio.objects.all().order_by('-id')
+    serializer_class = BodegaAcopioSerializer
+    permission_classes = [permissions.AllowAny]
+
+class BodegaAcopioDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    CRUD Bodega de Acopio individual: Consulta, actualización y eliminación.
+    """
+    queryset = BodegaAcopio.objects.all()
+    serializer_class = BodegaAcopioSerializer
+    permission_classes = [permissions.AllowAny]
+
+class CatalogoSuministrosListCreateAPIView(generics.ListCreateAPIView):
+    """
+    CRUD Kits y Catálogo Oficial de Provisiones: Permite listar y crear nuevos kits.
+    """
+    queryset = SuministroCatalogo.objects.all().order_by('id')
+    serializer_class = SuministroCatalogoSerializer
+    permission_classes = [permissions.AllowAny]
+
+class CatalogoSuministroDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    CRUD Kit individual: Consulta, modificación y eliminación de suministros.
     """
     queryset = SuministroCatalogo.objects.all()
     serializer_class = SuministroCatalogoSerializer
     permission_classes = [permissions.AllowAny]
 
-class InventarioBodegasStockAPIView(generics.ListAPIView):
+class InventarioBodegasStockAPIView(generics.ListCreateAPIView):
     """
     Control de inventarios y alertas de desabastecimiento.
     """
