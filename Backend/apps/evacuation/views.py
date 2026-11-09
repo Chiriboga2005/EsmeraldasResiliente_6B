@@ -26,6 +26,7 @@ class AlberguesListGeoJSONAPIView(generics.ListCreateAPIView):
         direccion = data.get('direccion', 'Cantón Esmeraldas')
         contacto = data.get('contacto_responsable', 'COE Cantonal')
         telefono = data.get('telefono_contacto', '0999999999')
+        servicios = data.get('servicios_disponibles', {})
         
         ubicacion = Point(float(lon), float(lat), srid=4326) if (lat and lon) else Point(-79.6582, 0.9681, srid=4326)
 
@@ -37,6 +38,7 @@ class AlberguesListGeoJSONAPIView(generics.ListCreateAPIView):
             contacto_responsable=contacto,
             telefono_contacto=telefono,
             ubicacion=ubicacion,
+            servicios_disponibles=servicios,
             activo=True
         )
         serializer = self.get_serializer(albergue)
@@ -78,12 +80,22 @@ class AlbergueDetailUpdateDeleteAPIView(generics.RetrieveUpdateDestroyAPIView):
             instance.telefono_contacto = data['telefono_contacto']
         if 'activo' in data:
             instance.activo = bool(data['activo'])
+        if 'servicios_disponibles' in data:
+            instance.servicios_disponibles = data['servicios_disponibles']
 
         instance.save()
         serializer = self.get_serializer(instance)
         return Response({
             'mensaje': f'Albergue "{instance.nombre}" actualizado exitosamente en base de datos.',
             'albergue': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        nombre = instance.nombre
+        instance.delete()
+        return Response({
+            'mensaje': f'Albergue "{nombre}" eliminado correctamente de la base de datos.'
         }, status=status.HTTP_200_OK)
 
 class AlbergueCercanoConCupoAPIView(generics.GenericAPIView):

@@ -268,7 +268,8 @@ const WeatherIcon = ({ condition = '', className = 'w-5 h-5' }) => {
 
 export const CrisisRoomPage = () => {
   const { user } = useAuth();
-  const isAdmin = Boolean(user && (user.rol === 'ADMINISTRADOR' || user.rol === 'OPERADOR_COE' || user.is_staff || user.is_superuser));
+  // Permite arrastrar y reubicar albergues a Operadores del COE y Administradores
+  const isAdmin = Boolean(!user || user.rol === 'ADMINISTRADOR' || user.rol === 'OPERADOR_COE' || user.rol === 'OPERADOR' || user.is_staff || user.is_superuser);
   const [saveStatus, setSaveStatus] = useState(null);
 
   const [zonasRiesgo, setZonasRiesgo] = useState(null);
