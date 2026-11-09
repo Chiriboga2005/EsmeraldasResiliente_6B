@@ -17,18 +17,27 @@ body {
   min-height: 100vh;
 }
 
-/* Leaflet dark & custom styling */
+/* Fondo neutral para Leaflet: evita la pantalla negra al hacer zoom */
 .leaflet-container {
   width: 100%;
   height: 100%;
-  background: #0f172a;
+  background: #e2e8f0 !important; /* Tono cálido/neutro de mapa para que el zoom nunca se vea negro */
   font-family: inherit;
+}
+
+/* Transiciones suaves de teselas */
+.leaflet-tile-container {
+  pointer-events: none;
+}
+
+.leaflet-tile {
+  transition: opacity 0.18s ease-in-out;
 }
 
 .leaflet-popup-content-wrapper {
   background: #1e293b !important;
   color: #f8fafc !important;
-  border-radius: 0.5rem !important;
+  border-radius: 0.75rem !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
   border: 1px solid #334155;
 }
