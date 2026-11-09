@@ -1,8 +1,9 @@
-# Lanzador Unificado en PowerShell para Esmeraldas Resiliente 6B
+# Lanzador Unificado en PowerShell para Esmeraldas Resiliente 6B (Mismo Puerto 8000)
 $ErrorActionPreference = "SilentlyContinue"
 
 Write-Host "===============================================================================" -ForegroundColor Cyan
 Write-Host "         ESMERALDAS RESILIENTE 6B - CENTRO DE MANDO Y SALA DE CRISIS COE" -ForegroundColor Yellow
+Write-Host "                    (SERVIDOR UNIFICADO EN PUERTO 8000)" -ForegroundColor Green
 Write-Host "===============================================================================" -ForegroundColor Cyan
 
 $root = $PSScriptRoot
@@ -12,14 +13,11 @@ if (Test-Path "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe") {
 }
 $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
 
-Write-Host "[1/3] Iniciando Servidor Backend Django en http://localhost:8000/ ..." -ForegroundColor Green
-Start-Process -FilePath "cmd.exe" -ArgumentList "/k title Backend COE && cd /d `"$root\Backend`" && `"$pyExe`" manage.py runserver 0.0.0.0:8000"
+Write-Host "[1/2] Compilando e integrando Frontend React..." -ForegroundColor Green
+Set-Location "$root\Frontend"
+& "C:\Program Files\nodejs\npm.cmd" run build
 
-Write-Host "[2/3] Iniciando Servidor Frontend Vite en http://localhost:5173/ ..." -ForegroundColor Green
-Start-Process -FilePath "cmd.exe" -ArgumentList "/k title Frontend COE && cd /d `"$root\Frontend`" && `"$env:ProgramFiles\nodejs\npm.cmd`" run dev"
-
-Write-Host "[3/3] Abriendo navegador en http://localhost:5173/ ..." -ForegroundColor Green
-Start-Sleep -Seconds 3
-Start-Process "http://localhost:5173/"
-
-Write-Host "`nSistema prendido exitosamente." -ForegroundColor Cyan
+Write-Host "[2/2] Encendiendo Servidor Django en http://localhost:8000/ ..." -ForegroundColor Green
+Start-Process "http://localhost:8000/"
+Set-Location "$root\Backend"
+& $pyExe manage.py runserver 0.0.0.0:8000
