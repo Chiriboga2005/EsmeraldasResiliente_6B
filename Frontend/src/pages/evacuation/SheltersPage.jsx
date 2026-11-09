@@ -405,7 +405,7 @@ export const SheltersPage = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="max-w-6xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
       
       {/* ========================================================================= */}
       {/* NOTIFICACIÓN TOAST FLOTANTE */}
@@ -425,15 +425,15 @@ export const SheltersPage = () => {
       {/* ========================================================================= */}
       {/* CABECERA PRINCIPAL CON BOTÓN DE REGISTRAR Y TOGGLES */}
       {/* ========================================================================= */}
-      <div className="bg-crisis-800 border border-crisis-700 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-crisis-800 border border-crisis-700 p-4 sm:p-5 rounded-2xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
-              <Home className="w-6 h-6" />
+          <div className="flex items-start sm:items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0">
+              <Home className="w-5 h-5 sm:w-6 sm:h-6" />
             </span>
             <div>
-              <h2 className="text-xl font-extrabold text-white tracking-wide flex items-center gap-2">
-                Red de Albergues y Centros de Evacuación
+              <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-wide flex flex-wrap items-center gap-2">
+                <span>Red de Albergues y Evacuación</span>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   {albergues.length} Albergues Activos
                 </span>
@@ -446,14 +446,14 @@ export const SheltersPage = () => {
         </div>
 
         {/* Acciones principales */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {/* Botón Crear Albergue (Exclusivo Administrador) */}
           {isAdmin && (
             <button
               onClick={openCreateModal}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-950/50 transition transform hover:-translate-y-0.5"
+              className="flex-1 sm:flex-initial justify-center flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-950/50 transition transform hover:-translate-y-0.5"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 shrink-0" />
               <span>Crear Albergue</span>
             </button>
           )}
@@ -461,32 +461,32 @@ export const SheltersPage = () => {
           {/* Toggle de Mapa Interactivo */}
           <button
             onClick={() => setShowMap(!showMap)}
-            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition ${
+            className={`flex-1 sm:flex-initial justify-center flex items-center gap-1.5 px-3 py-2 sm:py-2.5 rounded-xl border text-xs font-bold transition ${
               showMap
                 ? 'bg-sky-600 text-white border-sky-500 shadow-md ring-1 ring-sky-300'
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-950 border-slate-300 dark:bg-crisis-700 dark:hover:bg-crisis-600 dark:text-slate-300 dark:hover:text-white dark:border-crisis-600'
             }`}
           >
-            <MapIcon className="w-3.5 h-3.5" />
-            <span>{showMap ? 'Ocultar Mapa' : 'Ver en Mapa'}</span>
+            <MapIcon className="w-3.5 h-3.5 shrink-0" />
+            <span>{showMap ? 'Ocultar Mapa' : 'Ver Mapa'}</span>
           </button>
 
           {/* Buscar Albergue Más Cercano */}
           <button
             onClick={findNearest}
             disabled={locating}
-            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-950 border border-slate-300 dark:bg-crisis-700 dark:hover:bg-crisis-600 dark:text-slate-200 dark:border-crisis-600 text-xs font-bold transition disabled:opacity-50"
+            className="flex-1 sm:flex-initial justify-center flex items-center gap-1.5 px-3 py-2 sm:py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-950 border border-slate-300 dark:bg-crisis-700 dark:hover:bg-crisis-600 dark:text-slate-200 dark:border-crisis-600 text-xs font-bold transition disabled:opacity-50"
             title="Calcular refugio más próximo según GPS"
           >
-            <Compass className={`w-3.5 h-3.5 text-sky-600 dark:text-sky-400 ${locating ? 'animate-spin' : ''}`} />
-            <span>{locating ? 'GPS...' : 'Más Cercano'}</span>
+            <Compass className={`w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0 ${locating ? 'animate-spin' : ''}`} />
+            <span>{locating ? 'GPS...' : 'Cercano'}</span>
           </button>
 
           {/* Refrescar */}
           <button
             onClick={loadData}
             disabled={loading}
-            className="p-2.5 text-slate-700 hover:text-slate-950 bg-slate-100 hover:bg-slate-200 dark:text-slate-300 dark:hover:text-white dark:bg-crisis-700 dark:hover:bg-crisis-600 rounded-xl border border-slate-300 dark:border-crisis-600 transition"
+            className="p-2 sm:p-2.5 text-slate-700 hover:text-slate-950 bg-slate-100 hover:bg-slate-200 dark:text-slate-300 dark:hover:text-white dark:bg-crisis-700 dark:hover:bg-crisis-600 rounded-xl border border-slate-300 dark:border-crisis-600 transition"
             title="Recargar datos desde la base de datos"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-sky-500 dark:text-sky-400' : ''}`} />
@@ -786,8 +786,8 @@ export const SheltersPage = () => {
       {/* MODAL PARA CREAR O EDITAR ALBERGUE TEMPORAL */}
       {/* ========================================================================= */}
       {modalType && (
-        <div className="fixed inset-0 z-[2500] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-crisis-800 border border-crisis-700 w-full max-w-xl rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 my-8">
+        <div className="fixed inset-0 z-[2500] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-crisis-800 border border-crisis-700 w-full max-w-xl rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             
             {/* Cabecera del modal */}
             <div className="flex items-center justify-between border-b border-crisis-700 pb-3">

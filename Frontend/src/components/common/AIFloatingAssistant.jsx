@@ -149,7 +149,7 @@ export const AIFloatingAssistant = () => {
 
       {/* VENTANA MODAL / PANEL DE CONSULTAS DE IA */}
       {isOpen && (
-        <div className="fixed bottom-16 right-3 sm:right-4 z-[1200] w-[95vw] sm:w-[480px] max-h-[85vh] h-[640px] flex flex-col bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-16 right-2 sm:right-4 z-[1200] w-[calc(100vw-1rem)] sm:w-[480px] max-h-[82vh] h-[580px] flex flex-col bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
           
           {/* HEADER DEL ASISTENTE */}
           <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-slate-800 p-3.5 flex items-center justify-between">

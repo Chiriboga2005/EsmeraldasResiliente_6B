@@ -30,8 +30,8 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-full flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-crisis-800 border border-crisis-700 rounded-2xl p-8 shadow-2xl space-y-6">
+    <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+      <div className="max-w-md w-full bg-crisis-800 border border-crisis-700 rounded-2xl p-5 sm:p-8 shadow-2xl space-y-5 sm:space-y-6">
         <div className="text-center space-y-2">
           <div className="inline-flex p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400">
             <Shield className="w-8 h-8" />

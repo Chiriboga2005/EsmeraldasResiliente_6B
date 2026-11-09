@@ -136,20 +136,20 @@ export const CitizenReportPage = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="max-w-2xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* Cabecera Móvil */}
-      <div className="bg-white dark:bg-crisis-800 border border-slate-200 dark:border-crisis-700 p-4 rounded-xl flex items-start justify-between shadow-sm">
+      <div className="bg-white dark:bg-crisis-800 border border-slate-200 dark:border-crisis-700 p-3.5 sm:p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-sm">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-500" />
-            Reporte Comunitario de Incidentes
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+            <span>Reporte Comunitario de Incidentes</span>
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
             Alerta en tiempo real sobre inundaciones, deslaves o emergencias en tu sector.
           </p>
         </div>
         {!isOnline && (
-          <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+          <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
             <WifiOff className="w-3.5 h-3.5" /> Offline Listo
           </span>
         )}
@@ -174,7 +174,7 @@ export const CitizenReportPage = () => {
       )}
 
       {/* Formulario */}
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-crisis-800 border border-slate-200 dark:border-crisis-700 rounded-xl p-5 space-y-4 shadow-sm">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-crisis-800 border border-slate-200 dark:border-crisis-700 rounded-xl p-4 sm:p-5 space-y-4 shadow-sm">
         {/* Tipo de Evento */}
         <div>
           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
@@ -198,7 +198,7 @@ export const CitizenReportPage = () => {
           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
             Nivel de Gravedad Percibido
           </label>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { id: 'BAJO', label: 'Bajo', activeClass: 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-400' },
               { id: 'MEDIO', label: 'Medio', activeClass: 'bg-amber-500 text-slate-950 font-black border-amber-600 shadow-md ring-2 ring-amber-300' },
@@ -209,7 +209,7 @@ export const CitizenReportPage = () => {
                 type="button"
                 key={g.id}
                 onClick={() => setFormData({ ...formData, nivel_gravedad: g.id })}
-                className={`py-2 text-xs font-bold rounded-lg border transition ${
+                className={`py-2.5 sm:py-2 text-xs font-bold rounded-lg border transition ${
                   formData.nivel_gravedad === g.id
                     ? `${g.activeClass} scale-[1.02]`
                     : 'border-slate-300 dark:border-crisis-600 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-crisis-900 hover:bg-slate-200 dark:hover:bg-crisis-700'
@@ -222,24 +222,24 @@ export const CitizenReportPage = () => {
         </div>
 
         {/* Geolocalización GPS */}
-        <div className="bg-slate-50 dark:bg-crisis-900/60 p-3.5 rounded-lg border border-slate-200 dark:border-crisis-700 space-y-2.5">
-          <div className="flex items-center justify-between">
+        <div className="bg-slate-50 dark:bg-crisis-900/60 p-3 sm:p-3.5 rounded-lg border border-slate-200 dark:border-crisis-700 space-y-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-sky-500 dark:text-sky-400" />
+              <MapPin className="w-4 h-4 text-sky-500 dark:text-sky-400 shrink-0" />
               Ubicación GPS del Incidente
             </span>
             <button
               type="button"
               onClick={handleGetLocation}
               disabled={gpsLoading}
-              className="text-xs font-semibold px-2.5 py-1 rounded bg-sky-100 hover:bg-sky-200 text-sky-800 border border-sky-300 dark:bg-sky-500/20 dark:hover:bg-sky-500/30 dark:text-sky-300 dark:border-sky-500/40 transition flex items-center gap-1.5 shadow-sm"
+              className="w-full sm:w-auto justify-center text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-800 border border-sky-300 dark:bg-sky-500/20 dark:hover:bg-sky-500/30 dark:text-sky-300 dark:border-sky-500/40 transition flex items-center gap-1.5 shadow-sm"
             >
-              <MapPin className="w-3.5 h-3.5" />
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
               {gpsLoading ? 'Obteniendo GPS...' : 'Usar mi GPS Actual'}
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             <div>
               <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Latitud</label>
               <input
@@ -266,7 +266,7 @@ export const CitizenReportPage = () => {
         </div>
 
         {/* Daños y Personas */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" /> Familias Afectadas

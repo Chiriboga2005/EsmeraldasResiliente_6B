@@ -232,17 +232,17 @@ export const IncidentCommandPage = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
       
       {/* CABECERA PRINCIPAL: CENTRO DE OPERACIONES Y GESTIÓN */}
-      <div className="bg-white dark:bg-crisis-800 border border-slate-200 dark:border-crisis-700 p-5 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-start sm:items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-md shrink-0">
-            <ShieldAlert className="w-6 h-6 animate-pulse" />
+      <div className="bg-white dark:bg-crisis-800 border border-slate-200 dark:border-crisis-700 p-4 sm:p-5 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3 sm:gap-3.5">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-md shrink-0">
+            <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-md bg-sky-100 dark:bg-sky-500/20 text-sky-900 dark:text-sky-300 border border-sky-300 dark:border-sky-500/40">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-500/20 text-sky-900 dark:text-sky-300 border border-sky-300 dark:border-sky-500/40">
                 Comando COE • Sala de Situación
               </span>
               <span className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-extrabold">
@@ -250,7 +250,7 @@ export const IncidentCommandPage = () => {
                 En Vivo (WebSockets)
               </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
+            <h1 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
               Centro de Operaciones y Gestión de Alertas
             </h1>
             <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium">
@@ -260,12 +260,12 @@ export const IncidentCommandPage = () => {
         </div>
 
         {/* Acciones de Cabecera */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full md:w-auto">
           <button
             onClick={() => setShowAlertModal(true)}
-            className="px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition active:scale-95"
+            className="flex-1 sm:flex-initial justify-center px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition active:scale-95"
           >
-            <BellRing className="w-4 h-4" />
+            <BellRing className="w-4 h-4 shrink-0" />
             <span>Emitir Alerta Sectorial</span>
           </button>
 
@@ -388,7 +388,7 @@ export const IncidentCommandPage = () => {
       </div>
 
       {/* BARRA SIMPLIFICADA: INDICADOR DE FILTRO ACTIVO Y BÚSQUEDA RÁPIDA */}
-      <div className="bg-white dark:bg-crisis-800 border border-slate-200 dark:border-crisis-700 p-3.5 rounded-xl shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="bg-white dark:bg-crisis-800 border border-slate-200 dark:border-crisis-700 p-3 sm:p-3.5 rounded-xl shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-slate-800 dark:text-slate-300 font-bold flex items-center gap-1.5">
             <Filter className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
@@ -414,17 +414,17 @@ export const IncidentCommandPage = () => {
             </div>
           ) : (
             <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-800 dark:bg-crisis-700 dark:text-slate-200 border border-slate-200 dark:border-crisis-600">
-              Mostrando Todos los Incidentes ({incidentes.length})
+              Mostrando Todos ({incidentes.length})
             </span>
           )}
 
           <span className="text-xs text-slate-700 dark:text-slate-400 font-bold pl-2 hidden md:inline">
-            • {filteredList.length} incidentes mostrados
+            • {filteredList.length} mostrados
           </span>
         </div>
 
         {/* Buscador de Incidentes */}
-        <div className="relative min-w-[260px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[260px]">
           <Search className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
@@ -517,11 +517,11 @@ export const IncidentCommandPage = () => {
               </div>
 
               {/* Barra de Acciones y Transición de Estados (Workflow COE) */}
-              <div className="pt-3 border-t border-slate-200 dark:border-crisis-700/80 flex flex-wrap items-center justify-between gap-3">
+              <div className="pt-3 border-t border-slate-200 dark:border-crisis-700/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => navigate('/')}
-                    className="px-3 py-1.5 text-xs font-bold text-sky-800 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 hover:bg-sky-100 dark:hover:bg-sky-500/20 rounded-lg border border-sky-300 dark:border-sky-500/30 flex items-center gap-1.5 transition shadow-sm"
+                    className="w-full sm:w-auto justify-center px-3 py-1.5 text-xs font-bold text-sky-800 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 hover:bg-sky-100 dark:hover:bg-sky-500/20 rounded-lg border border-sky-300 dark:border-sky-500/30 flex items-center gap-1.5 transition shadow-sm"
                     title="Ver coordenadas en el mapa satelital"
                   >
                     <MapPin className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
@@ -530,7 +530,7 @@ export const IncidentCommandPage = () => {
                 </div>
 
                 {/* Botones de Cambio de Estado con Alto Contraste */}
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
                   {inc.estado === 'PENDIENTE' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'EN_PROCESO')}
@@ -589,7 +589,7 @@ export const IncidentCommandPage = () => {
       {/* MODAL DE EMISIÓN DE ALERTA SECTORIAL (MÓDULO 3) */}
       {showAlertModal && (
         <div className="fixed inset-0 z-[1500] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-5 space-y-4">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-black text-sm uppercase">
                 <BellRing className="w-5 h-5 animate-bounce" />
@@ -622,7 +622,7 @@ export const IncidentCommandPage = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-slate-800 dark:text-slate-300 font-semibold">Nivel de Alerta</label>
                     <select

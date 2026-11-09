@@ -239,12 +239,12 @@ export const HumanitarianPage = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="max-w-6xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
       
       {/* Cabecera y Selector de Pestañas */}
-      <div className="bg-crisis-800 border border-crisis-700 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-crisis-800 border border-crisis-700 p-4 sm:p-5 rounded-2xl shadow-xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
               Módulos 4 & 5 • Asistencia Humanitaria
             </span>
@@ -254,9 +254,9 @@ export const HumanitarianPage = () => {
               </span>
             )}
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2.5 mt-1">
-            <HeartHandshake className="w-7 h-7 text-sky-400" />
-            Asistencia Humanitaria, Bodegas y Kits
+          <h2 className="text-lg sm:text-2xl font-black text-white flex items-center gap-2.5 mt-1.5">
+            <HeartHandshake className="w-6 h-6 sm:w-7 sm:h-7 text-sky-400 shrink-0" />
+            <span>Asistencia Humanitaria, Bodegas y Kits</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Gestión de padrón de familias damnificadas, bodegas de acopio y catálogo de provisiones del COE.
@@ -264,36 +264,36 @@ export const HumanitarianPage = () => {
         </div>
 
         {/* Selector de Pestañas */}
-        <div className="flex flex-wrap bg-slate-100 dark:bg-crisis-900 p-1 rounded-xl border border-slate-300 dark:border-crisis-700 text-xs gap-1">
+        <div className="grid grid-cols-1 sm:grid-cols-3 w-full lg:w-auto bg-slate-100 dark:bg-crisis-900 p-1 rounded-xl border border-slate-300 dark:border-crisis-700 text-xs gap-1">
           <button
             onClick={() => setTab('censo')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
               tab === 'censo'
                 ? 'bg-sky-600 text-white shadow'
                 : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-800'
             }`}
           >
-            <Users className="w-4 h-4" /> Ficha Censal ({familias.length})
+            <Users className="w-4 h-4 shrink-0" /> <span className="truncate">Ficha Censal ({familias.length})</span>
           </button>
           <button
             onClick={() => setTab('bodegas')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
               tab === 'bodegas'
                 ? 'bg-sky-600 text-white shadow'
                 : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-800'
             }`}
           >
-            <Building2 className="w-4 h-4" /> Bodegas de Acopio ({bodegas.length})
+            <Building2 className="w-4 h-4 shrink-0" /> <span className="truncate">Bodegas ({bodegas.length})</span>
           </button>
           <button
             onClick={() => setTab('suministros')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
               tab === 'suministros'
                 ? 'bg-sky-600 text-white shadow'
                 : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-800'
             }`}
           >
-            <Boxes className="w-4 h-4" /> Catálogo de Kits ({suministros.length})
+            <Boxes className="w-4 h-4 shrink-0" /> <span className="truncate">Kits COE ({suministros.length})</span>
           </button>
         </div>
       </div>
@@ -380,11 +380,11 @@ export const HumanitarianPage = () => {
             </div>
 
             {/* Composición Familiar */}
-            <div className="bg-crisis-900/60 p-4 rounded-xl border border-crisis-700 space-y-2.5">
+            <div className="bg-crisis-900/60 p-3 sm:p-4 rounded-xl border border-crisis-700 space-y-2.5">
               <span className="text-xs font-bold text-slate-300">
                 Indicadores de Vulnerabilidad en el Hogar
               </span>
-              <div className="grid grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
                 <div>
                   <label className="text-[11px] text-slate-400">Total Miembros</label>
                   <input
@@ -653,7 +653,7 @@ export const HumanitarianPage = () => {
       {/* ========================================================================= */}
       {showBodegaModal && (
         <div className="fixed inset-0 z-[1500] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-5 space-y-4">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-amber-400" />
@@ -680,7 +680,7 @@ export const HumanitarianPage = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-slate-300 font-semibold">Responsable Encargado</label>
                   <input
@@ -714,7 +714,7 @@ export const HumanitarianPage = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-slate-300 font-semibold">Latitud GPS</label>
                   <input
@@ -775,7 +775,7 @@ export const HumanitarianPage = () => {
       {/* ========================================================================= */}
       {showKitModal && (
         <div className="fixed inset-0 z-[1500] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-5 space-y-4">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Boxes className="w-4 h-4 text-sky-400" />
@@ -790,7 +790,7 @@ export const HumanitarianPage = () => {
             </div>
 
             <form onSubmit={handleSaveKit} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-slate-300 font-semibold">Código SKU</label>
                   <input
@@ -830,7 +830,7 @@ export const HumanitarianPage = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-slate-300 font-semibold">Unidad de Medida</label>
                   <input
