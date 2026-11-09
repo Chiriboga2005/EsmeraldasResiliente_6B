@@ -16,3 +16,4 @@ export const evacuationApi = {
     return res.data;
   },
 };
+

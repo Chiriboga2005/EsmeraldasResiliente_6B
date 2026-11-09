@@ -8,3 +8,4 @@ offlineDb.version(1).stores({
 });
 
 export default offlineDb;
+

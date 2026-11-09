@@ -14,3 +14,4 @@ export const weatherApi = {
     return res.data;
   },
 };
+

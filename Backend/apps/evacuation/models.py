@@ -11,7 +11,7 @@ class AlbergueTemporal(models.Model):
     ubicacion = models.PointField(srid=4326)
     area_poligono = models.PolygonField(srid=4326, null=True, blank=True)
     activo = models.BooleanField(default=True)
-    servicios_disponibles = models.JSONBField(default=dict)
+    servicios_disponibles = models.JSONField(default=dict)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     class Meta:

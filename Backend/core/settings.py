@@ -7,6 +7,19 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
+# Configuración GeoDjango para Windows (GDAL y GEOS)
+if os.name == 'nt':
+    POSTGRES_BIN = r'C:\Program Files\PostgreSQL\18\bin'
+    if os.path.exists(POSTGRES_BIN):
+        os.environ['PATH'] = POSTGRES_BIN + ';' + os.environ.get('PATH', '')
+        if hasattr(os, 'add_dll_directory'):
+            try:
+                os.add_dll_directory(POSTGRES_BIN)
+            except Exception:
+                pass
+        GDAL_LIBRARY_PATH = os.path.join(POSTGRES_BIN, 'libgdal-35.dll')
+        GEOS_LIBRARY_PATH = os.path.join(POSTGRES_BIN, 'libgeos_c.dll')
+
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-esmeraldas-resiliente-key-2026')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '*').split(',')]

@@ -97,3 +97,4 @@ export const OfflineProvider = ({ children }) => {
 };
 
 export const useOffline = () => useContext(OfflineContext);
+
