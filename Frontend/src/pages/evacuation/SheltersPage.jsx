@@ -146,7 +146,17 @@ function MapClickHandler({ onClickMap }) {
 export const SheltersPage = () => {
   const { user } = useAuth();
   // Permisos de edición y reubicación restringidos exclusivamente al ADMINISTRADOR
-  const isAdmin = Boolean(user && (user.rol === 'ADMINISTRADOR' || user.is_staff || user.is_superuser || user.username === 'admin'));
+  const userRol = (user?.rol || user?.properties?.rol || '').toUpperCase();
+  const userUsername = (user?.username || user?.properties?.username || '').toLowerCase();
+  const isAdmin = Boolean(
+    user && (
+      userRol === 'ADMINISTRADOR' || 
+      userRol === 'ADMIN' || 
+      userUsername === 'admin' || 
+      user?.is_staff || 
+      user?.is_superuser
+    )
+  );
 
   const [albergues, setAlbergues] = useState([]);
   const [loading, setLoading] = useState(true);

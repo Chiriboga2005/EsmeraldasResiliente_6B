@@ -3,17 +3,31 @@ import { authApi } from '../api/authApi';
 
 const AuthContext = createContext(null);
 
+// Función auxiliar para aplanar el usuario si viene en formato GeoJSON Feature
+const normalizeUser = (rawUser) => {
+  if (!rawUser) return null;
+  if (rawUser.type === 'Feature' && rawUser.properties) {
+    return {
+      ...rawUser.properties,
+      id: rawUser.id || rawUser.properties.id,
+      geometry: rawUser.geometry,
+    };
+  }
+  return rawUser;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('usuario');
-    return saved ? JSON.parse(saved) : null;
+    return saved ? normalizeUser(JSON.parse(saved)) : null;
   });
   const [token, setToken] = useState(() => localStorage.getItem('access_token'));
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async () => {
     try {
-      const perfil = await authApi.getPerfil();
+      const perfilRaw = await authApi.getPerfil();
+      const perfil = normalizeUser(perfilRaw);
       setUser(perfil);
       localStorage.setItem('usuario', JSON.stringify(perfil));
     } catch (err) {
@@ -41,10 +55,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('access_token', data.access);
     localStorage.setItem('refresh_token', data.refresh);
     setToken(data.access);
-    let perfil = data.usuario || data.user;
-    if (!perfil) {
-      perfil = await authApi.getPerfil();
+    let rawPerfil = data.usuario || data.user;
+    if (!rawPerfil) {
+      rawPerfil = await authApi.getPerfil();
     }
+    const perfil = normalizeUser(rawPerfil);
     setUser(perfil);
     localStorage.setItem('usuario', JSON.stringify(perfil));
     return perfil;

@@ -269,7 +269,17 @@ const WeatherIcon = ({ condition = '', className = 'w-5 h-5' }) => {
 export const CrisisRoomPage = () => {
   const { user } = useAuth();
   // Modo de gestión restringido exclusivamente para el ADMINISTRADOR
-  const isAdmin = Boolean(user && (user.rol === 'ADMINISTRADOR' || user.is_staff || user.is_superuser || user.username === 'admin'));
+  const userRol = (user?.rol || user?.properties?.rol || '').toUpperCase();
+  const userUsername = (user?.username || user?.properties?.username || '').toLowerCase();
+  const isAdmin = Boolean(
+    user && (
+      userRol === 'ADMINISTRADOR' || 
+      userRol === 'ADMIN' || 
+      userUsername === 'admin' || 
+      user?.is_staff || 
+      user?.is_superuser
+    )
+  );
   const [saveStatus, setSaveStatus] = useState(null);
 
   const [zonasRiesgo, setZonasRiesgo] = useState(null);

@@ -60,10 +60,14 @@ export const Navbar = () => {
           <div className="flex items-center space-x-3 pl-3 border-l border-crisis-700">
             <div className="text-right hidden sm:block">
               <p className="text-xs font-semibold text-slate-200">
-                {user?.first_name || user?.telefono || 'Usuario'}
+                {user?.nombre_completo || user?.first_name || user?.username || user?.telefono || 'Usuario'}
               </p>
-              <span className="text-[10px] uppercase font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded">
-                {user?.rol || 'OPERADOR'}
+              <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${
+                (user?.rol === 'ADMINISTRADOR' || user?.username === 'admin')
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 ring-1 ring-amber-400/40'
+                  : 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+              }`}>
+                {user?.rol || (user?.username === 'admin' ? 'ADMINISTRADOR' : 'OPERADOR')}
               </span>
             </div>
             <button

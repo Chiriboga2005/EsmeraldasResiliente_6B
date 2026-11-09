@@ -92,6 +92,19 @@ class PerfilUsuarioSerializer(GeoFeatureModelSerializer):
         ]
         read_only_fields = ['id', 'rol', 'esta_verificado', 'fecha_registro']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Si es un GeoJSON Feature, copiar todas las propiedades clave al nivel raíz para compatibilidad con el frontend
+        if isinstance(data, dict) and 'properties' in data:
+            for k, v in data['properties'].items():
+                if k not in data:
+                    data[k] = v
+            # Garantizar flags de administración para el frontend
+            if instance:
+                data['is_staff'] = instance.is_staff
+                data['is_superuser'] = instance.is_superuser
+        return data
+
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
         user = super().update(instance, validated_data)
