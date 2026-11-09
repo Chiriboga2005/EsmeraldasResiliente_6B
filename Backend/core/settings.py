@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
+import dj_database_url
 
 # Cargar variables de entorno desde .env
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,7 +27,19 @@ if os.name == 'nt':
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-esmeraldas-resiliente-key-2026')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '*').split(',')]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '*').split(',') if h.strip()]
+
+# Orígenes confiables para CSRF (Render, Localhost y Aiven)
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.onrender.com',
+    'http://localhost:8080',
+    'http://localhost:8000',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:8000',
+]
+extra_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+if extra_csrf:
+    CSRF_TRUSTED_ORIGINS.extend([c.strip() for c in extra_csrf.split(',') if c.strip()])
 
 # ------------------------------------------------------------------------------
 # APLICACIONES INSTALADAS
@@ -59,6 +72,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -94,21 +108,32 @@ WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = 'core.asgi.application'
 
 # ------------------------------------------------------------------------------
-# BASE DE DATOS ESPACIAL (POSTGRESQL + POSTGIS: esmeraldas_db)
+# BASE DE DATOS ESPACIAL (POSTGRESQL + POSTGIS: Aiven Cloud / Local)
 # ------------------------------------------------------------------------------
-DATABASES = {
-    'default': {
-        'ENGINE': os.getenv('DB_ENGINE', 'django.contrib.gis.db.backends.postgis'),
-        'NAME': os.getenv('DB_NAME', 'esmeraldas_db'),
-        'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'admin'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-        'OPTIONS': {
-            'sslmode': os.getenv('DB_SSLMODE', 'prefer'),
-        },
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            engine='django.contrib.gis.db.backends.postgis',
+            conn_max_age=600,
+            ssl_require=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': os.getenv('DB_ENGINE', 'django.contrib.gis.db.backends.postgis'),
+            'NAME': os.getenv('DB_NAME', 'esmeraldas_db'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'admin'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+            'OPTIONS': {
+                'sslmode': os.getenv('DB_SSLMODE', 'prefer'),
+            },
+        }
+    }
 
 # ------------------------------------------------------------------------------
 # MODELO DE USUARIO PERSONALIZADO (CIUDADANÍA Y ROLES COE)

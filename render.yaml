@@ -1,0 +1,33 @@
+# ==============================================================================
+# RENDER BLUEPRINT SPECIFICATION: ESMERALDAS RESILIENTE 6B
+# https://render.com/docs/blueprint-spec
+# ==============================================================================
+services:
+  - type: web
+    name: esmeraldas-resiliente-6b
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: ohio
+    autoDeploy: true
+    branch: main
+    healthCheckPath: /api/v1/clima/actual/?canton=esmeraldas
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: CORS_ALLOW_ALL_ORIGINS
+        value: "True"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com"
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENWEATHERMAP_API_KEY
+        value: ""
+      - key: ESMERALDAS_LAT
+        value: "0.9681"
+      - key: ESMERALDAS_LON
+        value: "-79.6582"

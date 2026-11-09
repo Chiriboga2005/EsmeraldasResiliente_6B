@@ -8,6 +8,11 @@ djangorestframework-simplejwt>=5.3.1
 
 # Conector de Base de Datos Espacial PostgreSQL (PostGIS)
 psycopg2-binary>=2.9.9
+dj-database-url>=3.1.2
+
+# Servidor de Producción y Archivos Estáticos (Render / Linux / Windows)
+gunicorn>=22.0.0; sys_platform != 'win32'
+whitenoise>=6.12.0
 
 # Tiempo Real / WebSockets para el COE
 channels>=4.1.0
@@ -23,4 +28,3 @@ Pillow>=10.4.0
 scikit-learn>=1.5.1
 pandas>=2.2.2
 numpy>=1.26.4
-

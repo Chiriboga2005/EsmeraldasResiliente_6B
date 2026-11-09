@@ -1,4 +1,4 @@
-﻿# Iniciar Sistema Unificado Esmeraldas Resiliente 6B (Puertos 8080 y 8000)
+# Iniciar Sistema Unificado Esmeraldas Resiliente 6B (Puertos 8080 y 8000)
 $OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 

@@ -1,0 +1,16 @@
+.git
+.github
+node_modules
+Frontend/node_modules
+Backend/__pycache__
+Backend/*/__pycache__
+Backend/*/*/__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+venv
+*.sqlite3
+.DS_Store
+Thumbs.db
