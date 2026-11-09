@@ -125,12 +125,11 @@ const createShelterMarker = (pct = 0, nombre = '', isAdmin = false) => {
   });
 };
 
-// Ícono personalizado para hospitales, bomberos y puestos de auxilio
+// Ícono personalizado para hospitales y bomberos
 const createHospitalMarker = (tipo = 'HOSPITAL', isAdmin = false) => {
   const isBomberos = tipo?.toUpperCase().includes('BOMBERO');
-  const isPolicia = tipo?.toUpperCase().includes('POLICIA');
-  const bgColor = isBomberos ? '#ea580c' : isPolicia ? '#2563eb' : '#dc2626';
-  const label = isBomberos ? 'BOMBEROS' : isPolicia ? 'POLICÍA' : 'HOSPITAL';
+  const bgColor = isBomberos ? '#ea580c' : '#dc2626';
+  const label = isBomberos ? 'BOMBEROS' : 'HOSPITAL';
 
   return L.divIcon({
     html: `
@@ -1106,8 +1105,12 @@ export const CrisisRoomPage = () => {
                   <Popup>
                     <div className="text-xs space-y-1.5 min-w-[200px] p-1 text-slate-800 dark:text-slate-200">
                       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-1">
-                        <span className="text-sky-600 dark:text-sky-400 font-bold uppercase tracking-wider text-[10px]">
-                          {p.tipo || 'HOSPITAL'}
+                        <span className={`font-bold uppercase tracking-wider text-[10px] flex items-center gap-1 ${
+                          (p.tipo || '').toUpperCase().includes('BOMBERO')
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-red-600 dark:text-red-400'
+                        }`}>
+                          {(p.tipo || '').toUpperCase().includes('BOMBERO') ? '🚒 CUERPO DE BOMBEROS' : '🏥 HOSPITAL / CENTRO MÉDICO'}
                         </span>
                         {isAdmin && (
                           <span className="text-[9px] bg-sky-100 text-sky-800 border border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/40 px-1.5 py-0.5 rounded font-extrabold">
@@ -1370,26 +1373,36 @@ export const CrisisRoomPage = () => {
             <form onSubmit={handleCreateInfraestructura} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-700 dark:text-slate-300 font-semibold">Tipo de Infraestructura</label>
-                  <select
-                    value={infraForm.tipo}
-                    onChange={(e) => setInfraForm({ ...infraForm, tipo: e.target.value })}
-                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
-                  >
-                    <option value="HOSPITAL">🏥 Hospital / Centro Médico</option>
-                    <option value="BOMBEROS">🚒 Cuerpo de Bomberos</option>
-                    <option value="POLICIA">👮 Policía / Puesto de Auxilio</option>
-                  </select>
+                  <label className="text-slate-700 dark:text-slate-300 font-semibold">Tipo Asignado</label>
+                  <div className={`mt-1 flex items-center gap-2 px-3 py-2 rounded-lg border font-bold text-xs ${
+                    infraForm.tipo === 'HOSPITAL'
+                      ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                      : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                  }`}>
+                    {infraForm.tipo === 'HOSPITAL' ? (
+                      <>
+                        <HeartPulse className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
+                        <span>Hospital / Centro Médico</span>
+                      </>
+                    ) : (
+                      <>
+                        <Flame className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span>Cuerpo de Bomberos</span>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <div>
-                  <label className="text-slate-700 dark:text-slate-300 font-semibold">Capacidad de Atención</label>
+                  <label className="text-slate-700 dark:text-slate-300 font-semibold">
+                    {infraForm.tipo === 'HOSPITAL' ? 'Capacidad de Atención (Camas)' : 'Capacidad Operativa (Efectivos)'}
+                  </label>
                   <input
                     type="number"
                     min="1"
                     value={infraForm.capacidad_atencion}
                     onChange={(e) => setInfraForm({ ...infraForm, capacidad_atencion: parseInt(e.target.value) || 0 })}
-                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-sky-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -1402,7 +1415,7 @@ export const CrisisRoomPage = () => {
                   placeholder={infraForm.tipo === 'HOSPITAL' ? 'ej: Hospital General Delfina Torres' : 'ej: Estación de Bomberos San Rafael'}
                   value={infraForm.nombre}
                   onChange={(e) => setInfraForm({ ...infraForm, nombre: e.target.value })}
-                  className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs font-medium"
+                  className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-sky-500 focus:outline-none"
                 />
               </div>
 
@@ -1414,7 +1427,7 @@ export const CrisisRoomPage = () => {
                     placeholder="ej: 062723000"
                     value={infraForm.telefono_contacto}
                     onChange={(e) => setInfraForm({ ...infraForm, telefono_contacto: e.target.value })}
-                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none"
                   />
                 </div>
 
@@ -1422,10 +1435,10 @@ export const CrisisRoomPage = () => {
                   <label className="text-slate-700 dark:text-slate-300 font-semibold">Responsable a Cargo</label>
                   <input
                     type="text"
-                    placeholder="ej: Dr. Roberto Estupiñán"
+                    placeholder={infraForm.tipo === 'HOSPITAL' ? 'ej: Dr. Roberto Estupiñán' : 'ej: Cmdte. Miguel Perea'}
                     value={infraForm.contacto_responsable}
                     onChange={(e) => setInfraForm({ ...infraForm, contacto_responsable: e.target.value })}
-                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -1437,7 +1450,7 @@ export const CrisisRoomPage = () => {
                   placeholder="ej: Av. Libertad y Calle 10, Sector Centro"
                   value={infraForm.direccion}
                   onChange={(e) => setInfraForm({ ...infraForm, direccion: e.target.value })}
-                  className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
+                  className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none"
                 />
               </div>
 
@@ -1450,7 +1463,7 @@ export const CrisisRoomPage = () => {
                     required
                     value={infraForm.lat}
                     onChange={(e) => setInfraForm({ ...infraForm, lat: parseFloat(e.target.value) || 0 })}
-                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs font-mono"
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-sky-500 focus:outline-none"
                   />
                 </div>
 
@@ -1462,7 +1475,7 @@ export const CrisisRoomPage = () => {
                     required
                     value={infraForm.lon}
                     onChange={(e) => setInfraForm({ ...infraForm, lon: parseFloat(e.target.value) || 0 })}
-                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs font-mono"
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-sky-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -1471,7 +1484,7 @@ export const CrisisRoomPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowCreateInfraModal(false)}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg transition"
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg transition font-medium"
                 >
                   Cancelar
                 </button>
@@ -1482,7 +1495,7 @@ export const CrisisRoomPage = () => {
                   }`}
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Guardar en Base de Datos</span>
+                  <span>{infraForm.tipo === 'HOSPITAL' ? 'Guardar Hospital' : 'Guardar Bomberos'}</span>
                 </button>
               </div>
             </form>

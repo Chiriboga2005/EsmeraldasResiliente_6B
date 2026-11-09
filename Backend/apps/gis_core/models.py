@@ -42,7 +42,7 @@ class CapaHidricaVial(models.Model):
 class InfraestructuraEsencial(models.Model):
     id = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=180)
-    tipo = models.CharField(max_length=60) # 'HOSPITAL', 'BOMBEROS', 'POLICIA', etc.
+    tipo = models.CharField(max_length=60) # 'HOSPITAL', 'BOMBEROS'
     direccion = models.TextField(null=True, blank=True)
     telefono_contacto = models.CharField(max_length=30, null=True, blank=True)
     contacto_responsable = models.CharField(max_length=120, null=True, blank=True)
