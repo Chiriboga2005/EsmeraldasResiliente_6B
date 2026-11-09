@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     ZonasRiesgoGeoJSONAPIView,
     CapasHidricasVialesGeoJSONAPIView,
-    InfraestructurasGeoJSONAPIView
+    InfraestructurasGeoJSONAPIView,
+    InfraestructuraDetailUpdateDeleteAPIView
 )
 
 urlpatterns = [
@@ -12,5 +13,6 @@ urlpatterns = [
     path('red-hidrica-vial/', CapasHidricasVialesGeoJSONAPIView.as_view(), name='gis-red-hidrica-vial'),
     # GeoJSON de Hospitales, Bomberos y Policía
     path('infraestructuras/', InfraestructurasGeoJSONAPIView.as_view(), name='gis-infraestructuras'),
+    path('infraestructuras/<int:pk>/', InfraestructuraDetailUpdateDeleteAPIView.as_view(), name='gis-infraestructura-detail'),
 ]
 

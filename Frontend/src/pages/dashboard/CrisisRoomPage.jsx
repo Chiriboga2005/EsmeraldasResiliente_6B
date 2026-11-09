@@ -120,7 +120,7 @@ const createShelterMarker = (pct = 0, nombre = '', isAdmin = false) => {
 };
 
 // Ícono personalizado para hospitales, bomberos y puestos de auxilio
-const createHospitalMarker = (tipo = 'HOSPITAL') => {
+const createHospitalMarker = (tipo = 'HOSPITAL', isAdmin = false) => {
   const isBomberos = tipo?.toUpperCase().includes('BOMBERO');
   const isPolicia = tipo?.toUpperCase().includes('POLICIA');
   const bgColor = isBomberos ? '#ea580c' : isPolicia ? '#2563eb' : '#dc2626';
@@ -128,12 +128,12 @@ const createHospitalMarker = (tipo = 'HOSPITAL') => {
 
   return L.divIcon({
     html: `
-      <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));">
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: ${isAdmin ? 'grab' : 'pointer'}; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));">
         <div style="
           width: 32px; 
           height: 32px; 
           background: ${bgColor}; 
-          border: 2.5px solid #ffffff; 
+          border: ${isAdmin ? '2.5px dashed #38bdf8' : '2.5px solid #ffffff'}; 
           border-radius: 50%; 
           display: flex; 
           align-items: center; 
@@ -169,7 +169,7 @@ const createHospitalMarker = (tipo = 'HOSPITAL') => {
           font-size: 8.5px;
           font-weight: 800;
           letter-spacing: 0.3px;
-          border: 1px solid ${bgColor};
+          border: 1px solid ${isAdmin ? '#38bdf8' : bgColor};
           white-space: nowrap;
         ">
           ${label}
@@ -177,9 +177,9 @@ const createHospitalMarker = (tipo = 'HOSPITAL') => {
       </div>
     `,
     className: 'custom-hospital-marker',
-    iconSize: [38, 52],
-    iconAnchor: [19, 52],
-    popupAnchor: [0, -52],
+    iconSize: [32, 50],
+    iconAnchor: [16, 40],
+    popupAnchor: [0, -40],
   });
 };
 
@@ -268,8 +268,8 @@ const WeatherIcon = ({ condition = '', className = 'w-5 h-5' }) => {
 
 export const CrisisRoomPage = () => {
   const { user } = useAuth();
-  // Permite arrastrar y reubicar albergues a Operadores del COE y Administradores
-  const isAdmin = Boolean(!user || user.rol === 'ADMINISTRADOR' || user.rol === 'OPERADOR_COE' || user.rol === 'OPERADOR' || user.is_staff || user.is_superuser);
+  // Modo de gestión restringido exclusivamente para el ADMINISTRADOR
+  const isAdmin = Boolean(user && (user.rol === 'ADMINISTRADOR' || user.is_staff || user.is_superuser || user.username === 'admin'));
   const [saveStatus, setSaveStatus] = useState(null);
 
   const [zonasRiesgo, setZonasRiesgo] = useState(null);
@@ -304,6 +304,50 @@ export const CrisisRoomPage = () => {
   // Línea de tiempo interactiva (MSN El Tiempo Timeline)
   const [timelineIndex, setTimelineIndex] = useState(11);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Manejador de arrastre de infraestructuras (Hospitales / Bomberos) para reubicación en tierra firme (Exclusivo Administrador)
+  const handleInfraDragEnd = (infraId, infraNombre) => async (e) => {
+    const marker = e.target;
+    const newPos = marker.getLatLng();
+    const newLat = Number(newPos.lat.toFixed(5));
+    const newLon = Number(newPos.lng.toFixed(5));
+
+    setInfraestructuras((prev) => {
+      if (!prev || !prev.features) return prev;
+      return {
+        ...prev,
+        features: prev.features.map((f) => {
+          const fid = f.id || f.properties?.id;
+          if (fid === infraId) {
+            return {
+              ...f,
+              geometry: {
+                ...f.geometry,
+                coordinates: [newLon, newLat],
+              },
+            };
+          }
+          return f;
+        }),
+      };
+    });
+
+    try {
+      await gisApi.updateInfraestructura(infraId, { lat: newLat, lon: newLon });
+      setSaveStatus({
+        type: 'success',
+        text: `✅ ${infraNombre} reubicado exitosamente a [${newLat}, ${newLon}] en PostGIS.`,
+      });
+      setTimeout(() => setSaveStatus(null), 6000);
+    } catch (err) {
+      console.error('Error al guardar infraestructura:', err);
+      setSaveStatus({
+        type: 'error',
+        text: `⚠️ No se pudo guardar la ubicación en la base de datos.`,
+      });
+      setTimeout(() => setSaveStatus(null), 6000);
+    }
+  };
 
   // Manejador de arrastre de albergues para reubicación interactiva en tierra firme (Modo Admin)
   const handleShelterDragEnd = (albergueId, albergueNombre) => async (e) => {
@@ -825,24 +869,45 @@ export const CrisisRoomPage = () => {
                   : null;
               if (!coords || isNaN(coords[0]) || isNaN(coords[1])) return null;
 
-              const p = feature.properties;
+              const p = feature.properties || {};
+              const infraId = feature.id || p.id || (i + 1);
+
               return (
                 <Marker 
-                  key={`inf-${i}`} 
+                  key={`inf-${infraId}`} 
                   position={[coords[1], coords[0]]} 
-                  icon={createHospitalMarker(p.tipo)}
+                  icon={createHospitalMarker(p.tipo, isAdmin)}
+                  draggable={isAdmin}
+                  eventHandlers={{
+                    dragend: handleInfraDragEnd(infraId, p.nombre),
+                  }}
                 >
                   <Popup>
-                    <div className="text-xs space-y-1.5 min-w-[190px] p-1">
-                      <div className="flex items-center gap-1.5 text-sky-400 font-bold uppercase tracking-wider text-[10px]">
-                        <span>Servicio de Emergencia • {p.tipo || 'HOSPITAL'}</span>
+                    <div className="text-xs space-y-1.5 min-w-[200px] p-1">
+                      <div className="flex items-center justify-between border-b border-slate-700/80 pb-1">
+                        <span className="text-sky-400 font-bold uppercase tracking-wider text-[10px]">
+                          {p.tipo || 'HOSPITAL'}
+                        </span>
+                        {isAdmin && (
+                          <span className="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/40 px-1.5 py-0.5 rounded font-extrabold">
+                            ADMIN (Arrastrable)
+                          </span>
+                        )}
                       </div>
                       <p className="font-bold text-white text-sm">{p.nombre}</p>
                       <p className="text-slate-300 text-[11px]">{p.direccion || 'Esmeraldas'}</p>
+                      <p className="text-slate-400 font-mono text-[10px]">
+                        GPS: {coords[1].toFixed(5)}, {coords[0].toFixed(5)}
+                      </p>
                       {p.telefono_contacto && (
                         <p className="text-slate-400 text-[10px] pt-1">
                           Contacto: <span className="text-sky-300 font-medium">{p.telefono_contacto}</span>
                         </p>
+                      )}
+                      {isAdmin && (
+                        <div className="pt-1.5 border-t border-slate-700/60 text-[10px] text-sky-300 flex items-center gap-1 font-semibold">
+                          <span>✋ Arrastra este icono en el mapa para corregir su posición en tierra firme.</span>
+                        </div>
                       )}
                     </div>
                   </Popup>

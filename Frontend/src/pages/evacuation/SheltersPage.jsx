@@ -145,6 +145,9 @@ function MapClickHandler({ onClickMap }) {
 
 export const SheltersPage = () => {
   const { user } = useAuth();
+  // Permisos de edición y reubicación restringidos exclusivamente al ADMINISTRADOR
+  const isAdmin = Boolean(user && (user.rol === 'ADMINISTRADOR' || user.is_staff || user.is_superuser || user.username === 'admin'));
+
   const [albergues, setAlbergues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [nearestShelter, setNearestShelter] = useState(null);
@@ -434,14 +437,16 @@ export const SheltersPage = () => {
 
         {/* Acciones principales */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Botón Crear Albergue */}
-          <button
-            onClick={openCreateModal}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-950/50 transition transform hover:-translate-y-0.5"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Crear Albergue</span>
-          </button>
+          {/* Botón Crear Albergue (Exclusivo Administrador) */}
+          {isAdmin && (
+            <button
+              onClick={openCreateModal}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-950/50 transition transform hover:-translate-y-0.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Crear Albergue</span>
+            </button>
+          )}
 
           {/* Toggle de Mapa Interactivo */}
           <button
@@ -492,22 +497,28 @@ export const SheltersPage = () => {
                 Mapa Interactivo de Reubicación
               </span>
               <span className="text-slate-400 text-[11px] hidden sm:inline">
-                • Arrastra cualquier icono de casa en el mapa para corregir su posición en tierra firme
+                {isAdmin ? '• Arrastra cualquier icono de casa en el mapa para corregir su posición en tierra firme' : '• Visualización en tiempo real de albergues y centros de auxilio'}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setDragModeActive(!dragModeActive)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
-                  dragModeActive
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 ring-1 ring-emerald-400/40'
-                    : 'bg-slate-800 text-slate-400 border-slate-700'
-                }`}
-              >
-                <Sliders className="w-3 h-3" />
-                <span>{dragModeActive ? 'Arrastre Habilitado' : 'Solo Lectura'}</span>
-              </button>
+              {isAdmin ? (
+                <button
+                  onClick={() => setDragModeActive(!dragModeActive)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
+                    dragModeActive
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 ring-1 ring-emerald-400/40'
+                      : 'bg-slate-800 text-slate-400 border-slate-700'
+                  }`}
+                >
+                  <Sliders className="w-3 h-3" />
+                  <span>{dragModeActive ? 'Arrastre Habilitado (Admin)' : 'Solo Lectura'}</span>
+                </button>
+              ) : (
+                <span className="text-[11px] text-slate-400 bg-crisis-800 px-2.5 py-1 rounded-lg border border-crisis-700">
+                  Modo Monitoreo COE
+                </span>
+              )}
             </div>
           </div>
 
@@ -543,8 +554,8 @@ export const SheltersPage = () => {
                   <Marker
                     key={`map-alb-${albId}`}
                     position={[coords[1], coords[0]]}
-                    icon={createShelterIcon(pct, dragModeActive, isSelected)}
-                    draggable={dragModeActive}
+                    icon={createShelterIcon(pct, isAdmin && dragModeActive, isSelected)}
+                    draggable={isAdmin && dragModeActive}
                     eventHandlers={{
                       dragend: handleMarkerDragEnd(albId, p.nombre),
                       click: () => setSelectedShelterId(albId),
@@ -566,21 +577,23 @@ export const SheltersPage = () => {
                           <span>Ocupación: <strong>{p.ocupacion_actual}</strong> / {p.capacidad_maxima}</span>
                           <span className="text-emerald-400 font-bold">{p.capacidad_maxima - p.ocupacion_actual} libres</span>
                         </div>
-                        <div className="pt-2 border-t border-slate-700/70 flex items-center justify-between gap-1">
-                          <button
-                            onClick={() => openEditModal(feature)}
-                            className="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-1 px-2 rounded text-[10px] flex items-center justify-center gap-1"
-                          >
-                            <Edit className="w-3 h-3" /> Editar
-                          </button>
-                          <button
-                            onClick={() => handleDelete(feature)}
-                            className="bg-red-600 hover:bg-red-500 text-white font-bold py-1 px-2 rounded text-[10px] flex items-center justify-center"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
+                        {isAdmin && (
+                          <div className="pt-2 border-t border-slate-700/70 flex items-center justify-between gap-1">
+                            <button
+                              onClick={() => openEditModal(feature)}
+                              className="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-1 px-2 rounded text-[10px] flex items-center justify-center gap-1"
+                            >
+                              <Edit className="w-3 h-3" /> Editar
+                            </button>
+                            <button
+                              onClick={() => handleDelete(feature)}
+                              className="bg-red-600 hover:bg-red-500 text-white font-bold py-1 px-2 rounded text-[10px] flex items-center justify-center"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </Popup>
                   </Marker>
@@ -669,12 +682,14 @@ export const SheltersPage = () => {
                 {/* Coordenadas GPS */}
                 <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono bg-crisis-900/80 px-2.5 py-1.5 rounded-xl border border-crisis-700/60">
                   <span>GPS: {coords[1].toFixed(5)}, {coords[0].toFixed(5)}</span>
-                  <button
-                    onClick={() => focusOnMap(feature)}
-                    className="text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1"
-                  >
-                    <Move className="w-3 h-3" /> Mover en mapa
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => focusOnMap(feature)}
+                      className="text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1"
+                    >
+                      <Move className="w-3 h-3" /> Mover en mapa
+                    </button>
+                  )}
                 </div>
 
                 {/* Barra de Ocupación */}
@@ -712,27 +727,34 @@ export const SheltersPage = () => {
                 )}
               </div>
 
-              {/* Botonera de Acciones CRUD y Enlace */}
+              {/* Botonera de Acciones (Solo Administrador) y Enlace de Ruta */}
               <div className="pt-3 border-t border-crisis-700/80 flex items-center justify-between gap-1.5 text-xs">
-                <div className="flex items-center gap-1">
-                  {/* Editar */}
-                  <button
-                    onClick={() => openEditModal(feature)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/40 text-sky-300 border border-sky-500/40 font-bold text-[11px] transition"
-                    title="Modificar nombre, capacidad, ocupación o ubicación"
-                  >
-                    <Edit className="w-3 h-3" /> Editar
-                  </button>
+                {isAdmin ? (
+                  <div className="flex items-center gap-1">
+                    {/* Editar */}
+                    <button
+                      onClick={() => openEditModal(feature)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/40 text-sky-300 border border-sky-500/40 font-bold text-[11px] transition"
+                      title="Modificar nombre, capacidad, ocupación o ubicación"
+                    >
+                      <Edit className="w-3 h-3" /> Editar
+                    </button>
 
-                  {/* Eliminar */}
-                  <button
-                    onClick={() => handleDelete(feature)}
-                    className="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/40 transition"
-                    title="Eliminar albergue"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                    {/* Eliminar */}
+                    <button
+                      onClick={() => handleDelete(feature)}
+                      className="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/40 transition"
+                      title="Eliminar albergue"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    Albergue Verificado COE
+                  </span>
+                )}
 
                 {/* Cómo llegar */}
                 <a
