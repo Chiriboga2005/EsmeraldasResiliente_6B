@@ -3,10 +3,9 @@ import apiClient from './client';
 export const reportsApi = {
   getReportes: async () => {
     const res = await apiClient.get('/reportes/');
-    return res.data;
+    return res.data?.results || res.data;
   },
   crearReporte: async (reporteData) => {
-    // Si viene FormData (por foto), axios configura automátiamente multipart/form-data
     const isFormData = reporteData instanceof FormData;
     const res = await apiClient.post('/reportes/crear/', reporteData, {
       headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
@@ -18,4 +17,3 @@ export const reportsApi = {
     return res.data;
   },
 };
-
