@@ -455,10 +455,9 @@ export const CrisisRoomPage = () => {
     const newLon = Number(newPos.lng.toFixed(5));
 
     setInfraestructuras((prev) => {
-      if (!prev || !prev.features) return prev;
-      return {
-        ...prev,
-        features: prev.features.map((f) => {
+      if (!prev) return prev;
+      if (Array.isArray(prev)) {
+        return prev.map((f) => {
           const fid = f.id || f.properties?.id;
           if (fid === infraId) {
             return {
@@ -470,8 +469,27 @@ export const CrisisRoomPage = () => {
             };
           }
           return f;
-        }),
-      };
+        });
+      }
+      if (prev.features) {
+        return {
+          ...prev,
+          features: prev.features.map((f) => {
+            const fid = f.id || f.properties?.id;
+            if (fid === infraId) {
+              return {
+                ...f,
+                geometry: {
+                  ...f.geometry,
+                  coordinates: [newLon, newLat],
+                },
+              };
+            }
+            return f;
+          }),
+        };
+      }
+      return prev;
     });
 
     try {
@@ -500,10 +518,9 @@ export const CrisisRoomPage = () => {
 
     // Actualización visual inmediata en estado local GeoJSON
     setAlbergues((prev) => {
-      if (!prev || !prev.features) return prev;
-      return {
-        ...prev,
-        features: prev.features.map((f) => {
+      if (!prev) return prev;
+      if (Array.isArray(prev)) {
+        return prev.map((f) => {
           const fid = f.id || f.properties?.id;
           if (fid === albergueId) {
             return {
@@ -515,8 +532,27 @@ export const CrisisRoomPage = () => {
             };
           }
           return f;
-        }),
-      };
+        });
+      }
+      if (prev.features) {
+        return {
+          ...prev,
+          features: prev.features.map((f) => {
+            const fid = f.id || f.properties?.id;
+            if (fid === albergueId) {
+              return {
+                ...f,
+                geometry: {
+                  ...f.geometry,
+                  coordinates: [newLon, newLat],
+                },
+              };
+            }
+            return f;
+          }),
+        };
+      }
+      return prev;
     });
 
     try {
