@@ -19,6 +19,10 @@ if os.name == 'nt':
                 pass
         GDAL_LIBRARY_PATH = os.path.join(POSTGRES_BIN, 'libgdal-35.dll')
         GEOS_LIBRARY_PATH = os.path.join(POSTGRES_BIN, 'libgeos_c.dll')
+        proj_dir = r'C:\Program Files\PostgreSQL\18\share\contrib\postgis-3.6\proj'
+        if os.path.exists(proj_dir):
+            os.environ['PROJ_LIB'] = proj_dir
+            os.environ['PROJ_DATA'] = proj_dir
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-esmeraldas-resiliente-key-2026')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'

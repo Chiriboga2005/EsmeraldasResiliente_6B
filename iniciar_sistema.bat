@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 >nul
-title Esmeraldas Resiliente 6B - Servidor Unificado (Frontend + Backend en Puerto 8000)
+title Esmeraldas Resiliente 6B - Servidor Unificado (Puertos 8080 y 8000)
 color 0A
 
 echo ===============================================================================
-echo            ESMERALDAS RESILIENTE 6B - CENTRO DE MANDO Y SALA DE CRISIS COE
-echo                    (SERVIDOR UNIFICADO EN EL PUERTO 8000)
+echo            ESMERALDAS RESILIENTE 6B - SALA DE CRISIS COE & PLATAFORMA INTEGRAL
+echo                    (SERVIDOR UNIFICADO EN PUERTOS 8080 Y 8000)
 echo ===============================================================================
 echo.
 
@@ -18,7 +18,7 @@ if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
 :: Asegurar Node.js en PATH para compilar assets si hubo cambios
 set "PATH=C:\Program Files\nodejs;%PATH%"
 
-echo [1/2] Compilando e integrando Frontend React en Django...
+echo [1/2] Compilando e integrando Frontend React (Vite)...
 cd /d "%~dp0Frontend"
 call "C:\Program Files\nodejs\npm.cmd" run build
 
@@ -26,15 +26,16 @@ echo.
 echo [2/2] Encendiendo Servidor Unificado (Frontend + Backend + Aiven PostGIS)...
 echo.
 echo ===============================================================================
-echo   ¡TODO PRENDIDO EN EL MISMO PUERTO (8000)!
+echo   ¡ACCESO INMEDIATO Y FLUIDO EN EL MISMO SERVIDOR!
 echo.
-echo   👉 Accede a la Sala de Crisis en: http://localhost:8000/
-echo   👉 APIs REST Geoespaciales en:     http://localhost:8000/api/v1/
-echo   👉 Base de Datos:                 Aiven Cloud PostGIS (defaultdb)
+echo   👉 Sala de Crisis COE (Principal): http://localhost:8080/
+echo   👉 Acceso alternativo:            http://localhost:8000/
+echo   👉 APIs REST Geoespaciales:       http://localhost:8080/api/v1/
+echo   👉 Base Espacial PostGIS:         Aiven Cloud (defaultdb - Conectado)
 echo ===============================================================================
 echo.
 
-start http://localhost:8000/
+start http://localhost:8080/
 
 cd /d "%~dp0Backend"
-"%PYTHON_EXE%" manage.py runserver 0.0.0.0:8000
+"%PYTHON_EXE%" server_dual_port.py
