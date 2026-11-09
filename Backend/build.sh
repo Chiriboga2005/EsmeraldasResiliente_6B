@@ -19,3 +19,4 @@ echo "==> [4/4] Aplicando migraciones de base de datos..."
 python manage.py migrate --fake-initial
 
 echo "==> Compilación completada con éxito."
+

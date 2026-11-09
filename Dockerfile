@@ -57,3 +57,4 @@ EXPOSE 8080
 
 # Comando de arranque en producción: migraciones iniciales y servidor WSGI con Gunicorn
 CMD ["sh", "-c", "python manage.py migrate --fake-initial && gunicorn core.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 4 --timeout 120"]
+
