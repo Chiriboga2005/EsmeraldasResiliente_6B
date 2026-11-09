@@ -105,3 +105,4 @@ class ClasificarIncidenteAPIView(APIView):
             return Response({'error': 'Cuerpo JSON no proporcionado.'}, status=status.HTTP_400_BAD_REQUEST)
         resultado = clf.clasificar_incidente(datos)
         return Response(resultado)
+

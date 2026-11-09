@@ -53,58 +53,163 @@ const CANTONES = [
   { id: 'eloy_alfaro', nombre: 'Eloy Alfaro (Borbón)', shortName: 'Eloy Alfaro', lat: 1.2464, lon: -78.9839 },
 ];
 
-// Íconos personalizados para albergues y centros hospitalarios
-const shelterIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [24, 38],
-  iconAnchor: [12, 38],
-  popupAnchor: [1, -32],
-  shadowSize: [38, 38]
-});
+// Ícono personalizado exclusivo para albergues temporales y zonas de refugio (Casa/Refugio con techo seguro y cupo)
+const createShelterMarker = (pct = 0, nombre = '') => {
+  const bgColor = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#10b981';
+  const ringColor = pct >= 90 ? '#991b1b' : pct >= 70 ? '#b45309' : '#047857';
+  const badgeText = pct >= 90 ? 'LLENO' : `${pct}%`;
 
-const hospitalIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [24, 38],
-  iconAnchor: [12, 38],
-  popupAnchor: [1, -32],
-  shadowSize: [38, 38]
-});
+  return L.divIcon({
+    html: `
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));">
+        <!-- Badge de Refugio / Albergue -->
+        <div style="
+          width: 36px; 
+          height: 36px; 
+          background: ${bgColor}; 
+          border: 2.5px solid #ffffff; 
+          border-radius: 10px; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center;
+          color: white;
+          box-shadow: 0 0 10px ${bgColor}88, inset 0 2px 4px rgba(255,255,255,0.3);
+        ">
+          <!-- Pictograma de Refugio / Casa Segura -->
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5 12 3l9 7.5"/>
+            <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/>
+            <path d="M10 21v-6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v6"/>
+          </svg>
+        </div>
+        <!-- Puntero inferior -->
+        <div style="
+          width: 0; 
+          height: 0; 
+          border-left: 6px solid transparent; 
+          border-right: 6px solid transparent; 
+          border-top: 7px solid ${bgColor}; 
+          margin-top: -1px;
+        "></div>
+        <!-- Mini pill de estado de ocupación -->
+        <div style="
+          margin-top: 1px;
+          background: rgba(15, 23, 42, 0.95);
+          color: #ffffff;
+          padding: 1px 6px;
+          border-radius: 6px;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.3px;
+          border: 1px solid ${ringColor};
+          white-space: nowrap;
+        ">
+          ALBERGUE ${badgeText}
+        </div>
+      </div>
+    `,
+    className: 'custom-shelter-marker',
+    iconSize: [42, 56],
+    iconAnchor: [21, 56],
+    popupAnchor: [0, -56],
+  });
+};
 
-// Pin dinámico para cantones
+// Ícono personalizado para hospitales, bomberos y puestos de auxilio
+const createHospitalMarker = (tipo = 'HOSPITAL') => {
+  const isBomberos = tipo?.toUpperCase().includes('BOMBERO');
+  const isPolicia = tipo?.toUpperCase().includes('POLICIA');
+  const bgColor = isBomberos ? '#ea580c' : isPolicia ? '#2563eb' : '#dc2626';
+  const label = isBomberos ? 'BOMBEROS' : isPolicia ? 'POLICÍA' : 'HOSPITAL';
+
+  return L.divIcon({
+    html: `
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));">
+        <div style="
+          width: 32px; 
+          height: 32px; 
+          background: ${bgColor}; 
+          border: 2.5px solid #ffffff; 
+          border-radius: 50%; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center;
+          color: white;
+          box-shadow: 0 0 10px ${bgColor}88;
+        ">
+          ${isBomberos ? `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+            </svg>
+          ` : `
+            <!-- Cruz Médica Universal -->
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z"/>
+            </svg>
+          `}
+        </div>
+        <div style="
+          width: 0; 
+          height: 0; 
+          border-left: 5px solid transparent; 
+          border-right: 5px solid transparent; 
+          border-top: 6px solid ${bgColor}; 
+          margin-top: -1px;
+        "></div>
+        <div style="
+          margin-top: 1px;
+          background: rgba(15, 23, 42, 0.95);
+          color: #ffffff;
+          padding: 1px 5px;
+          border-radius: 6px;
+          font-size: 8.5px;
+          font-weight: 800;
+          letter-spacing: 0.3px;
+          border: 1px solid ${bgColor};
+          white-space: nowrap;
+        ">
+          ${label}
+        </div>
+      </div>
+    `,
+    className: 'custom-hospital-marker',
+    iconSize: [38, 52],
+    iconAnchor: [19, 52],
+    popupAnchor: [0, -52],
+  });
+};
+
+// Etiqueta territorial para cantones (Mapa/Ubicación administrativa)
 const createCantonPin = (nombre, isSelected) => L.divIcon({
   html: `
     <div style="
-      background-color: ${isSelected ? '#0284c7' : 'rgba(15, 23, 42, 0.88)'};
+      background: ${isSelected ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'rgba(15, 23, 42, 0.94)'};
       color: #ffffff;
-      padding: 3px 9px;
+      padding: 3px 10px;
       border-radius: 9999px;
-      font-weight: 700;
+      font-weight: 800;
       font-size: 11px;
       border: 1.5px solid ${isSelected ? '#38bdf8' : '#475569'};
-      box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.6);
       display: inline-flex;
       align-items: center;
       gap: 5px;
       white-space: nowrap;
       cursor: pointer;
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(6px);
     ">
-      <span style="
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background-color: ${isSelected ? '#38bdf8' : '#10b981'};
-        display: inline-block;
-        box-shadow: 0 0 6px ${isSelected ? '#38bdf8' : '#10b981'};
-      "></span>
-      ${nombre}
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${isSelected ? '#bae6fd' : '#38bdf8'}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+        <line x1="9" y1="3" y2="18"/>
+        <line x1="15" y1="6" y2="21"/>
+      </svg>
+      <span>${nombre}</span>
     </div>
   `,
   className: 'custom-canton-pin',
-  iconSize: [85, 26],
-  iconAnchor: [42, 13],
+  iconSize: [95, 26],
+  iconAnchor: [47, 13],
+  popupAnchor: [0, -15],
 });
 
 const isValidGeoJson = (data) => {
@@ -542,26 +647,46 @@ export const CrisisRoomPage = () => {
               />
             )}
 
-            {/* 5. ALBERGUES TEMPORALES */}
+            {/* 5. ALBERGUES TEMPORALES Y ZONAS DE EVACUACIÓN / REFUGIO */}
             {layers.albergues && albergues?.features?.map((feature, i) => {
               const coords = feature.geometry?.coordinates;
               if (!coords) return null;
               const p = feature.properties;
               const pct = Math.round((p.ocupacion_actual / (p.capacidad_maxima || 1)) * 100);
               return (
-                <Marker key={`alb-${i}`} position={[coords[1], coords[0]]} icon={shelterIcon}>
+                <Marker 
+                  key={`alb-${i}`} 
+                  position={[coords[1], coords[0]]} 
+                  icon={createShelterMarker(pct, p.nombre)}
+                >
                   <Popup>
-                    <div className="text-xs space-y-1.5 min-w-[190px]">
-                      <p className="font-bold text-emerald-400 text-sm">{p.nombre}</p>
-                      <p className="text-slate-300">{p.direccion}</p>
-                      <div className="pt-1">
-                        <div className="flex justify-between text-[11px] mb-1">
-                          <span>Ocupación: {p.ocupacion_actual}/{p.capacidad_maxima}</span>
-                          <span className="font-bold">{pct}%</span>
+                    <div className="text-xs space-y-2 min-w-[210px] p-1">
+                      <div className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase tracking-wider text-[10px]">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Albergue y Refugio Seguro</span>
+                      </div>
+                      <div>
+                        <p className="font-extrabold text-white text-sm">{p.nombre}</p>
+                        <p className="text-slate-300 text-[11px] mt-0.5">{p.direccion || 'Cantón Esmeraldas'}</p>
+                      </div>
+                      <div className="pt-1.5 border-t border-slate-700/60">
+                        <div className="flex justify-between text-[11px] mb-1 text-slate-200">
+                          <span>Ocupación: <strong>{p.ocupacion_actual}</strong> / {p.capacidad_maxima}</span>
+                          <span className={`font-bold ${pct >= 90 ? 'text-red-400' : pct >= 70 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                            {pct}%
+                          </span>
                         </div>
-                        <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                          <div className="bg-emerald-500 h-full" style={{ width: `${Math.min(pct, 100)}%` }}></div>
+                        <div className="w-full bg-slate-700/80 h-2 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-300 ${
+                              pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500'
+                            }`} 
+                            style={{ width: `${Math.min(pct, 100)}%` }}
+                          ></div>
                         </div>
+                        <p className="text-[10px] text-slate-400 mt-1.5">
+                          Cupos disponibles: <strong className="text-emerald-400">{Math.max(0, p.capacidad_maxima - p.ocupacion_actual)} personas</strong>
+                        </p>
                       </div>
                     </div>
                   </Popup>
@@ -569,17 +694,29 @@ export const CrisisRoomPage = () => {
               );
             })}
 
-            {/* 6. INFRAESTRUCTURAS ESENCIALES */}
+            {/* 6. INFRAESTRUCTURAS ESENCIALES (HOSPITALES, BOMBEROS) */}
             {layers.infraestructuras && infraestructuras?.features?.map((feature, i) => {
               const coords = feature.geometry?.coordinates;
               if (!coords) return null;
               const p = feature.properties;
               return (
-                <Marker key={`inf-${i}`} position={[coords[1], coords[0]]} icon={hospitalIcon}>
+                <Marker 
+                  key={`inf-${i}`} 
+                  position={[coords[1], coords[0]]} 
+                  icon={createHospitalMarker(p.tipo)}
+                >
                   <Popup>
-                    <div className="text-xs space-y-1">
-                      <p className="font-bold text-sky-400 text-sm">{p.nombre}</p>
-                      <p className="text-slate-300">{p.direccion}</p>
+                    <div className="text-xs space-y-1.5 min-w-[190px] p-1">
+                      <div className="flex items-center gap-1.5 text-sky-400 font-bold uppercase tracking-wider text-[10px]">
+                        <span>Servicio de Emergencia • {p.tipo || 'HOSPITAL'}</span>
+                      </div>
+                      <p className="font-bold text-white text-sm">{p.nombre}</p>
+                      <p className="text-slate-300 text-[11px]">{p.direccion || 'Esmeraldas'}</p>
+                      {p.telefono_contacto && (
+                        <p className="text-slate-400 text-[10px] pt-1">
+                          Contacto: <span className="text-sky-300 font-medium">{p.telefono_contacto}</span>
+                        </p>
+                      )}
                     </div>
                   </Popup>
                 </Marker>

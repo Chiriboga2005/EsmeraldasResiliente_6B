@@ -46,3 +46,4 @@ class ConsultaIA(models.Model):
 
     def __str__(self):
         return f"[{self.fecha_creacion.strftime('%Y-%m-%d %H:%M')}] {self.pregunta[:50]}..."
+

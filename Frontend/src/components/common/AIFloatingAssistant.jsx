@@ -24,7 +24,7 @@ export const AIFloatingAssistant = () => {
     {
       id: 'welcome',
       sender: 'ai',
-      text: '👋 ¡Hola! Soy el **Asistente de Inteligencia Artificial del COE Cantonal** (Módulo 6).\n\nPuedes consultarme sobre **simulaciones de desborde del Río Teaone**, **índice de recurrencia por sectores**, **clasificación de triage con Scikit-learn** o **tendencias del Fenómeno El Niño**.\n\n*Todas tus consultas se almacenan en el historial de la base de datos PostgreSQL.*',
+      text: '👋 ¡Hola! Soy el **Asistente de Inteligencia Artificial del COE Cantonal**.\n\nPuedes consultarme sobre **simulaciones de desborde del Río Teaone**, **índice de recurrencia por sectores**, **clasificación de triage con Scikit-learn** o **tendencias del Fenómeno El Niño**.\n\n*Todas tus consultas se almacenan en el historial de la base de datos PostgreSQL.*',
       categoria: 'GENERAL',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
@@ -133,7 +133,7 @@ export const AIFloatingAssistant = () => {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="group relative flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 hover:from-sky-500 hover:to-purple-500 text-white font-bold rounded-full shadow-2xl shadow-indigo-500/40 border border-white/20 transition-all duration-300 transform hover:scale-105 active:scale-95"
-          title="Abrir Asistente de IA (Módulo 6)"
+          title="Abrir Asistente de IA Predictiva COE"
         >
           <span className="relative flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -141,11 +141,8 @@ export const AIFloatingAssistant = () => {
           </span>
 
           <BrainCircuit className="w-5 h-5 text-sky-200 group-hover:rotate-12 transition-transform duration-300" />
-          <span className="text-xs tracking-wide hidden sm:inline font-black uppercase">
+          <span className="text-xs tracking-wide font-black uppercase">
             IA Predictiva COE
-          </span>
-          <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full font-mono">
-            Módulo 6
           </span>
         </button>
       </div>
@@ -170,7 +167,7 @@ export const AIFloatingAssistant = () => {
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-400">
-                  Modelos predictivos y análisis de riesgos (Rúbrica M6)
+                  Modelos predictivos y análisis de riesgos preventivos
                 </p>
               </div>
             </div>
@@ -374,3 +371,4 @@ export const AIFloatingAssistant = () => {
   );
 };
 export default AIFloatingAssistant;
+

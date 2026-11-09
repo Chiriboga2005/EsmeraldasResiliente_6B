@@ -23,3 +23,4 @@ urlpatterns = [
     path('simular-escenario/', SimularEscenarioAPIView.as_view(), name='ia-simular-escenario'),
     path('clasificar-incidente/', ClasificarIncidenteAPIView.as_view(), name='ia-clasificar-incidente'),
 ]
+
