@@ -1,6 +1,23 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from django.contrib.gis.geos import Point
+
+try:
+    from django.contrib.gis.geos import Point
+except Exception:
+    Point = None
+
+def _crear_punto_espacial(lon, lat):
+    try:
+        if Point is not None:
+            return Point(float(lon), float(lat), srid=4326)
+    except Exception:
+        pass
+    try:
+        from django.contrib.gis.geos import GEOSGeometry
+        return GEOSGeometry(f'SRID=4326;POINT({float(lon)} {float(lat)})')
+    except Exception:
+        return f'SRID=4326;POINT({float(lon)} {float(lat)})'
+
 from django.contrib.gis.db.models.functions import Distance
 from django.db.models import F
 from .models import AlbergueTemporal, TramoVial
@@ -29,7 +46,7 @@ class AlberguesListGeoJSONAPIView(generics.ListCreateAPIView):
         telefono = data.get('telefono_contacto', '0999999999')
         servicios = data.get('servicios_disponibles', {})
         
-        ubicacion = Point(float(lon), float(lat), srid=4326) if (lat and lon) else Point(-79.6582, 0.9681, srid=4326)
+        ubicacion = _crear_punto_espacial(lon, lat) if (lat and lon) else _crear_punto_espacial(-79.6582, 0.9681)
 
         albergue = AlbergueTemporal.objects.create(
             nombre=nombre,
@@ -65,7 +82,7 @@ class AlbergueDetailUpdateDeleteAPIView(generics.RetrieveUpdateDestroyAPIView):
         lat = data.get('lat')
         lon = data.get('lon') or data.get('lng')
         if lat is not None and lon is not None:
-            instance.ubicacion = Point(float(lon), float(lat), srid=4326)
+            instance.ubicacion = _crear_punto_espacial(lon, lat)
 
         if 'nombre' in data:
             instance.nombre = data['nombre']
@@ -119,8 +136,8 @@ class AlbergueCercanoConCupoAPIView(generics.GenericAPIView):
             )
 
         try:
-            punto_usuario = Point(float(lon), float(lat), srid=4326)
-        except ValueError:
+            punto_usuario = _crear_punto_espacial(lon, lat)
+        except (ValueError, TypeError):
             return Response(
                 {'error': 'Coordenadas inválidas.'},
                 status=status.HTTP_400_BAD_REQUEST

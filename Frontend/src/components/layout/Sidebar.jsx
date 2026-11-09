@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Activity, 
   MapPin, 
@@ -8,12 +8,34 @@ import {
   HeartHandshake, 
   Layers,
   ShieldAlert,
-  PhoneCall
+  PhoneCall,
+  Clock,
+  RefreshCw,
+  CheckCircle2,
+  Flame,
+  Droplets,
+  Mountain,
+  Bot,
+  Megaphone,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { EmergencyContactsModal } from '../common/EmergencyContactsModal';
 
 export const Sidebar = () => {
   const [showContactsModal, setShowContactsModal] = useState(false);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Mantener abierto el submenú de incidentes si estamos en la ruta /incidentes
+  const [incidentesMenuOpen, setIncidentesMenuOpen] = useState(true);
+
+  useEffect(() => {
+    if (location.pathname === '/incidentes') {
+      setIncidentesMenuOpen(true);
+    }
+  }, [location.pathname]);
 
   const navItems = [
     {
@@ -44,44 +66,220 @@ export const Sidebar = () => {
     },
   ];
 
+  // Filtros de estado solicitados por el usuario
+  const incidentStatusFilters = [
+    {
+      paramKey: '',
+      paramValue: '',
+      label: 'Todos los Incidentes',
+      icon: ShieldAlert,
+      iconColor: 'text-slate-700 dark:text-slate-300',
+      activeClass: 'bg-slate-200 text-slate-950 dark:bg-crisis-700 dark:text-white font-bold border border-slate-300 dark:border-crisis-600 shadow-sm',
+    },
+    {
+      paramKey: 'estado',
+      paramValue: 'PENDIENTE',
+      label: 'Pendientes',
+      icon: Clock,
+      iconColor: 'text-amber-500',
+      activeClass: 'bg-amber-100 text-amber-950 dark:bg-amber-500/20 dark:text-amber-300 font-bold border border-amber-300 dark:border-amber-500/40 shadow-sm',
+    },
+    {
+      paramKey: 'estado',
+      paramValue: 'EN_PROCESO',
+      label: 'En Proceso',
+      icon: RefreshCw,
+      iconColor: 'text-sky-500',
+      activeClass: 'bg-sky-100 text-sky-950 dark:bg-sky-500/20 dark:text-sky-300 font-bold border border-sky-300 dark:border-sky-500/40 shadow-sm',
+    },
+    {
+      paramKey: 'estado',
+      paramValue: 'ATENDIDO',
+      label: 'Atendidos',
+      icon: CheckCircle2,
+      iconColor: 'text-emerald-500',
+      activeClass: 'bg-emerald-100 text-emerald-950 dark:bg-emerald-500/20 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-500/40 shadow-sm',
+    },
+  ];
+
+  // Categorías de incidentes solicitadas para visualizar debajo del botón
+  const incidentCategoryFilters = [
+    {
+      paramKey: 'gravedad',
+      paramValue: 'CRITICO',
+      label: 'Nivel Crítico',
+      icon: Flame,
+      iconColor: 'text-red-500',
+      activeClass: 'bg-red-100 text-red-950 dark:bg-red-500/20 dark:text-red-300 font-bold border border-red-300 dark:border-red-500/40 shadow-sm',
+    },
+    {
+      paramKey: 'categoria',
+      paramValue: 'INUNDACION',
+      label: 'Inundaciones / Ríos',
+      icon: Droplets,
+      iconColor: 'text-blue-500',
+      activeClass: 'bg-blue-100 text-blue-950 dark:bg-blue-500/20 dark:text-blue-300 font-bold border border-blue-300 dark:border-blue-500/40 shadow-sm',
+    },
+    {
+      paramKey: 'categoria',
+      paramValue: 'DESLAVE',
+      label: 'Deslaves / Taludes',
+      icon: Mountain,
+      iconColor: 'text-amber-600',
+      activeClass: 'bg-amber-100 text-amber-950 dark:bg-amber-500/20 dark:text-amber-300 font-bold border border-amber-300 dark:border-amber-500/40 shadow-sm',
+    },
+    {
+      paramKey: 'origen',
+      paramValue: 'CIUDADANO',
+      label: 'Reportes Ciudadanos',
+      icon: Megaphone,
+      iconColor: 'text-sky-600',
+      activeClass: 'bg-sky-100 text-sky-950 dark:bg-sky-500/20 dark:text-sky-300 font-bold border border-sky-300 dark:border-sky-500/40 shadow-sm',
+    },
+    {
+      paramKey: 'origen',
+      paramValue: 'SIMULACION',
+      label: 'Simulaciones IA COE',
+      icon: Bot,
+      iconColor: 'text-purple-500',
+      activeClass: 'bg-purple-100 text-purple-950 dark:bg-purple-500/20 dark:text-purple-300 font-bold border border-purple-300 dark:border-purple-500/40 shadow-sm',
+    },
+  ];
+
   return (
     <aside className="w-64 bg-white dark:bg-crisis-800 border-r border-slate-200 dark:border-crisis-700 flex flex-col justify-between shrink-0">
       <div className="p-4 space-y-6">
         <div>
-          <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-3 px-2">
+          <p className="text-[11px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider mb-3 px-2">
             Módulos del Sistema
           </p>
           <nav className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
+              const isIncidentesModule = item.to === '/incidentes';
+              const isCurrentPage = location.pathname === item.to;
+
               return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === '/'}
-                  className={({ isActive }) =>
-                    `flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                      isActive
-                        ? 'bg-sky-100 dark:bg-sky-500/20 text-sky-950 dark:text-sky-300 border border-sky-300 dark:border-sky-500/40 font-bold shadow-sm'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-crisis-700/60 hover:text-slate-950 dark:hover:text-white'
-                    }`
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span>{item.label}</span>
+                <div key={item.to} className="space-y-1">
+                  <div className="flex items-center">
+                    <NavLink
+                      to={item.to}
+                      end={item.to === '/'}
+                      className={({ isActive }) =>
+                        `w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition ${
+                          isActive
+                            ? 'bg-sky-100 dark:bg-sky-500/20 text-sky-950 dark:text-sky-300 border border-sky-300 dark:border-sky-500/40 font-bold shadow-sm'
+                            : 'text-slate-800 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-crisis-700/60 hover:text-slate-950 dark:hover:text-white font-semibold'
+                        }`
+                      }
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className="w-4 h-4 shrink-0 text-sky-600 dark:text-sky-400" />
+                        <span>{item.label}</span>
+                      </div>
+
+                      {item.badge === 'En Vivo' ? (
+                        <span className="relative flex h-2.5 w-2.5 items-center justify-center mr-1" title="Sistema Activo en Tiempo Real">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-sm shadow-emerald-400"></span>
+                        </span>
+                      ) : isIncidentesModule ? (
+                        <span
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIncidentesMenuOpen(!incidentesMenuOpen);
+                          }}
+                          className="p-1 hover:bg-slate-200 dark:hover:bg-crisis-700 rounded transition text-slate-600 dark:text-slate-400"
+                          title="Alternar filtros y categorías"
+                        >
+                          {incidentesMenuOpen ? (
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          )}
+                        </span>
+                      ) : null}
+                    </NavLink>
                   </div>
-                  {item.badge === 'En Vivo' ? (
-                    <span className="relative flex h-2.5 w-2.5 items-center justify-center mr-1" title="Sistema Activo en Tiempo Real">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-sm shadow-emerald-400"></span>
-                    </span>
-                  ) : item.badge ? (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-crisis-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600">
-                      {item.badge}
-                    </span>
-                  ) : null}
-                </NavLink>
+
+                  {/* LISTA EXPANDIBLE SOLICITADA POR EL USUARIO DEBAJO DE SEGUIMIENTO INCIDENTES */}
+                  {isIncidentesModule && (isCurrentPage || incidentesMenuOpen) && (
+                    <div className="ml-3 pl-3 border-l-2 border-sky-300 dark:border-sky-600/70 my-1.5 space-y-2 py-1">
+                      {/* Sub-grupo: Filtros de Estado */}
+                      <div>
+                        <p className="text-[10px] uppercase font-extrabold text-slate-600 dark:text-slate-400 px-2 py-0.5 tracking-wider">
+                          Filtros de Estado
+                        </p>
+                        <div className="space-y-0.5 mt-1">
+                          {incidentStatusFilters.map((sub) => {
+                            const isSubActive = isCurrentPage && (
+                              sub.paramKey
+                                ? searchParams.get(sub.paramKey) === sub.paramValue
+                                : (!searchParams.get('estado') && !searchParams.get('gravedad') && !searchParams.get('categoria') && !searchParams.get('origen'))
+                            );
+                            const SubIcon = sub.icon;
+
+                            return (
+                              <button
+                                key={sub.label}
+                                onClick={() => {
+                                  if (sub.paramKey) {
+                                    navigate(`/incidentes?${sub.paramKey}=${sub.paramValue}`);
+                                  } else {
+                                    navigate('/incidentes');
+                                  }
+                                }}
+                                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition ${
+                                  isSubActive
+                                    ? sub.activeClass
+                                    : 'text-slate-800 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-crisis-700/60 hover:text-slate-950 dark:hover:text-white font-semibold'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <SubIcon className={`w-3.5 h-3.5 shrink-0 ${sub.iconColor}`} />
+                                  <span className="truncate">{sub.label}</span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Sub-grupo: Categorías y Gravedad */}
+                      <div className="pt-1.5 border-t border-slate-200 dark:border-crisis-700/70">
+                        <p className="text-[10px] uppercase font-extrabold text-slate-600 dark:text-slate-400 px-2 py-0.5 tracking-wider">
+                          Categorías
+                        </p>
+                        <div className="space-y-0.5 mt-1">
+                          {incidentCategoryFilters.map((cat) => {
+                            const isCatActive = isCurrentPage && (
+                              searchParams.get(cat.paramKey) === cat.paramValue
+                            );
+                            const CatIcon = cat.icon;
+
+                            return (
+                              <button
+                                key={cat.label}
+                                onClick={() => navigate(`/incidentes?${cat.paramKey}=${cat.paramValue}`)}
+                                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition ${
+                                  isCatActive
+                                    ? cat.activeClass
+                                    : 'text-slate-800 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-crisis-700/60 hover:text-slate-950 dark:hover:text-white font-semibold'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <CatIcon className={`w-3.5 h-3.5 shrink-0 ${cat.iconColor}`} />
+                                  <span className="truncate">{cat.label}</span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </nav>

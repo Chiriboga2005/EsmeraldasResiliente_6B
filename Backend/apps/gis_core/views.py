@@ -1,6 +1,28 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from django.contrib.gis.geos import Point
+
+# Importación segura de Point compatible con entornos Windows y servidores en la nube
+try:
+    from django.contrib.gis.geos import Point
+except Exception:
+    Point = None
+
+def _crear_punto_espacial(lon, lat):
+    """
+    Retorna una instancia válida de geometría Point tolerando
+    entornos con limitaciones binarias de GEOS/GDAL.
+    """
+    try:
+        if Point is not None:
+            return Point(float(lon), float(lat), srid=4326)
+    except Exception:
+        pass
+    try:
+        from django.contrib.gis.geos import GEOSGeometry
+        return GEOSGeometry(f'SRID=4326;POINT({float(lon)} {float(lat)})')
+    except Exception:
+        return f'SRID=4326;POINT({float(lon)} {float(lat)})'
+
 from .models import ZonaRiesgo, CapaHidricaVial, InfraestructuraEsencial
 from .serializers import (
     ZonaRiesgoGeoSerializer,
@@ -70,11 +92,11 @@ class InfraestructurasGeoJSONAPIView(generics.ListCreateAPIView):
 
         try:
             if lat is not None and lon is not None and str(lat).strip() != '' and str(lon).strip() != '':
-                ubicacion = Point(float(lon), float(lat), srid=4326)
+                ubicacion = _crear_punto_espacial(lon, lat)
             else:
-                ubicacion = Point(-79.6582, 0.9681, srid=4326)
+                ubicacion = _crear_punto_espacial(-79.6582, 0.9681)
         except (ValueError, TypeError):
-            ubicacion = Point(-79.6582, 0.9681, srid=4326)
+            ubicacion = _crear_punto_espacial(-79.6582, 0.9681)
 
         try:
             cap_val = int(capacidad) if (capacidad is not None and str(capacidad).strip() != '') else 100
@@ -115,7 +137,7 @@ class InfraestructuraDetailUpdateDeleteAPIView(generics.RetrieveUpdateDestroyAPI
         lat = data.get('lat')
         lon = data.get('lon') or data.get('lng')
         if lat is not None and lon is not None:
-            instance.ubicacion = Point(float(lon), float(lat), srid=4326)
+            instance.ubicacion = _crear_punto_espacial(lon, lat)
 
         if 'nombre' in data:
             instance.nombre = data['nombre']

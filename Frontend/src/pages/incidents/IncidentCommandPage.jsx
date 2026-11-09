@@ -10,25 +10,27 @@ import {
   MapPin, 
   Users, 
   Flame, 
-  Radio, 
   Search, 
   Filter, 
   Send, 
   Plus, 
-  Eye, 
   Trash2,
   BellRing,
-  HelpCircle,
-  TrendingUp,
-  FileCheck
+  FileCheck,
+  Droplets,
+  Mountain,
+  Bot,
+  Megaphone,
+  X
 } from 'lucide-react';
 import { reportsApi } from '../../api/reportsApi';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export const IncidentCommandPage = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [incidentes, setIncidentes] = useState([]);
   const [kpis, setKpis] = useState({
@@ -44,11 +46,25 @@ export const IncidentCommandPage = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Filtros
-  const [statusFilter, setStatusFilter] = useState('TODOS'); // 'TODOS' | 'PENDIENTE' | 'EN_PROCESO' | 'ATENDIDO' | 'DESCARTADO'
-  const [gravityFilter, setGravityFilter] = useState('TODAS'); // 'TODAS' | 'CRITICO' | 'ALTO' | 'MEDIO' | 'BAJO'
-  const [originFilter, setOriginFilter] = useState('TODOS'); // 'TODOS' | 'CIUDADANO' | 'SIMULACION'
+  // Parámetros leídos reactivamente de la URL (controlados desde la lista del Sidebar o widgets)
+  const statusParam = searchParams.get('estado') || 'TODOS';
+  const gravityParam = searchParams.get('gravedad') || 'TODAS';
+  const categoryParam = searchParams.get('categoria') || 'TODAS';
+  const originParam = searchParams.get('origen') || 'TODOS';
+
+  const [statusFilter, setStatusFilter] = useState(statusParam);
+  const [gravityFilter, setGravityFilter] = useState(gravityParam);
+  const [categoryFilter, setCategoryFilter] = useState(categoryParam);
+  const [originFilter, setOriginFilter] = useState(originParam);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Sincronizar estado cuando cambie la URL (navegación desde el menú lateral)
+  useEffect(() => {
+    setStatusFilter(statusParam);
+    setGravityFilter(gravityParam);
+    setCategoryFilter(categoryParam);
+    setOriginFilter(originParam);
+  }, [searchParams]);
 
   // Modal Alerta Sectorial
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -116,29 +132,71 @@ export const IncidentCommandPage = () => {
     }, 2500);
   };
 
-  // Filtrado reactivo en cliente
+  // Filtrado reactivo en cliente gobernado por estado, gravedad, categoría y búsqueda
   const filteredList = incidentes.filter((inc) => {
     if (statusFilter !== 'TODOS' && inc.estado !== statusFilter) return false;
     if (gravityFilter !== 'TODAS' && inc.nivel_gravedad !== gravityFilter) return false;
+
+    if (categoryFilter !== 'TODAS') {
+      const ev = (inc.tipo_evento || '').toUpperCase();
+      if (!ev.includes(categoryFilter.toUpperCase())) return false;
+    }
+
     if (originFilter === 'CIUDADANO' && inc.es_simulacion) return false;
     if (originFilter === 'SIMULACION' && !inc.es_simulacion) return false;
+
     if (searchTerm) {
-      const matchText = (inc.descripcion + ' ' + inc.tipo_evento + ' ' + inc.usuario_nombre).toLowerCase();
+      const matchText = (
+        (inc.descripcion || '') + ' ' + 
+        (inc.tipo_evento || '') + ' ' + 
+        (inc.usuario_nombre || '') + ' ' +
+        (inc.estimacion_danos_vivienda || '')
+      ).toLowerCase();
       if (!matchText.includes(searchTerm.toLowerCase())) return false;
     }
     return true;
   });
 
+  const hasActiveFilter = statusFilter !== 'TODOS' || gravityFilter !== 'TODAS' || categoryFilter !== 'TODAS' || originFilter !== 'TODOS';
+
+  const getActiveFilterLabel = () => {
+    if (statusFilter === 'PENDIENTE') return '⏳ Estado: Pendientes';
+    if (statusFilter === 'EN_PROCESO') return '🔄 Estado: En Proceso';
+    if (statusFilter === 'ATENDIDO') return '✅ Estado: Atendidos';
+    if (gravityFilter === 'CRITICO') return '🚨 Nivel Crítico';
+    if (categoryFilter === 'INUNDACION') return '🌊 Inundaciones / Ríos';
+    if (categoryFilter === 'DESLAVE') return '⚠️ Deslaves / Deslizamientos';
+    if (originFilter === 'CIUDADANO') return '📢 Reportes Ciudadanos';
+    if (originFilter === 'SIMULACION') return '🤖 Simulaciones IA COE';
+    return 'Filtro Personalizado';
+  };
+
   const getGravedadBadge = (gravedad) => {
     switch (gravedad) {
       case 'CRITICO':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse">Crítico</span>;
+        return (
+          <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-red-100 text-red-950 border border-red-300 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/40 animate-pulse shadow-sm">
+            Crítico
+          </span>
+        );
       case 'ALTO':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-500/20 text-amber-400 border border-amber-500/30">Alto</span>;
+        return (
+          <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-amber-100 text-amber-950 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 shadow-sm">
+            Alto
+          </span>
+        );
       case 'MEDIO':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">Medio</span>;
+        return (
+          <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-yellow-100 text-yellow-950 border border-yellow-300 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/40 shadow-sm">
+            Medio
+          </span>
+        );
       default:
-        return <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-sky-500/20 text-sky-400 border border-sky-500/30">Bajo</span>;
+        return (
+          <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-sky-100 text-sky-950 border border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/40 shadow-sm">
+            Bajo
+          </span>
+        );
     }
   };
 
@@ -146,26 +204,26 @@ export const IncidentCommandPage = () => {
     switch (estado) {
       case 'PENDIENTE':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-            <Clock className="w-3 h-3" /> Pendiente
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-amber-100 text-amber-950 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 shadow-sm">
+            <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Pendiente
           </span>
         );
       case 'EN_PROCESO':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
-            <RefreshCw className="w-3 h-3 animate-spin" /> En Proceso
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-sky-100 text-sky-950 border border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/40 shadow-sm">
+            <RefreshCw className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 animate-spin" /> En Proceso
           </span>
         );
       case 'ATENDIDO':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-            <CheckCircle2 className="w-3 h-3" /> Atendido
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-950 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 shadow-sm">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Atendido
           </span>
         );
       case 'DESCARTADO':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/15 text-slate-400 border border-slate-500/30">
-            <XCircle className="w-3 h-3" /> Descartado
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-slate-200 text-slate-800 border border-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 shadow-sm">
+            <XCircle className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" /> Descartado
           </span>
         );
       default:
@@ -176,26 +234,26 @@ export const IncidentCommandPage = () => {
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
       
-      {/* CABECERA PRINCIPAL MÓDULO 3 */}
-      <div className="bg-crisis-800 border border-crisis-700 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* CABECERA PRINCIPAL: CENTRO DE OPERACIONES Y GESTIÓN */}
+      <div className="bg-white dark:bg-crisis-800 border border-slate-200 dark:border-crisis-700 p-5 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-md shrink-0">
             <ShieldAlert className="w-6 h-6 animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/30">
+              <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-md bg-sky-100 dark:bg-sky-500/20 text-sky-900 dark:text-sky-300 border border-sky-300 dark:border-sky-500/40">
                 Comando COE • Sala de Situación
               </span>
-              <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+              <span className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-extrabold">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
                 En Vivo (WebSockets)
               </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-wide mt-1">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
               Centro de Operaciones y Gestión de Alertas
             </h1>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium">
               Seguimiento unificado de emergencias, clasificación por gravedad y gestión de alertas sectoriales.
             </p>
           </div>
@@ -205,7 +263,7 @@ export const IncidentCommandPage = () => {
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => setShowAlertModal(true)}
-            className="px-3.5 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-600/30 flex items-center gap-2 transition active:scale-95"
+            className="px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition active:scale-95"
           >
             <BellRing className="w-4 h-4" />
             <span>Emitir Alerta Sectorial</span>
@@ -214,188 +272,188 @@ export const IncidentCommandPage = () => {
           <button
             onClick={loadData}
             disabled={loading}
-            className="p-2 bg-crisis-700 hover:bg-crisis-600 text-slate-300 hover:text-white rounded-xl border border-crisis-600 transition"
+            className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-crisis-700 dark:hover:bg-crisis-600 text-slate-800 dark:text-white rounded-xl border border-slate-300 dark:border-crisis-600 transition"
             title="Refrescar incidentes"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-sky-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-sky-600 dark:text-sky-400' : ''}`} />
           </button>
         </div>
       </div>
 
-      {/* DASHBOARD DE INDICADORES DE GESTIÓN (KPIS COE) */}
+      {/* CENTRO DE CONTROL SIMPLIFICADO A SOLO WIDGETS INTERACTIVOS */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         {/* Total */}
-        <div className="bg-crisis-800 border border-crisis-700 p-4 rounded-xl shadow space-y-1">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div
+          onClick={() => setSearchParams({})}
+          className={`bg-white dark:bg-crisis-800 border-2 rounded-xl p-4 shadow-sm space-y-1.5 cursor-pointer transition hover:scale-[1.02] active:scale-[0.98] ${
+            !hasActiveFilter
+              ? 'border-sky-500 ring-2 ring-sky-400/40 bg-sky-50/60 dark:bg-sky-500/10'
+              : 'border-slate-200 dark:border-crisis-700 hover:border-slate-400 dark:hover:border-slate-500'
+          }`}
+          title="Ver todos los incidentes"
+        >
+          <div className="flex items-center justify-between text-xs text-slate-800 dark:text-slate-300 font-bold uppercase tracking-wider">
             <span>Total Incidentes</span>
-            <Activity className="w-4 h-4 text-sky-400" />
+            <Activity className="w-4 h-4 text-sky-600 dark:text-sky-400" />
           </div>
-          <p className="text-2xl font-black text-white">{kpis.total || 0}</p>
-          <span className="text-[10px] text-slate-400 font-medium">100% registros</span>
+          <p className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-white">{kpis.total || 0}</p>
+          <span className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold block">100% registros</span>
         </div>
 
         {/* Pendientes */}
-        <div className="bg-crisis-800 border border-amber-500/30 p-4 rounded-xl shadow space-y-1 bg-amber-500/5">
-          <div className="flex items-center justify-between text-xs text-amber-400 font-semibold">
+        <div
+          onClick={() => setSearchParams({ estado: 'PENDIENTE' })}
+          className={`bg-white dark:bg-crisis-800 border-2 rounded-xl p-4 shadow-sm space-y-1.5 cursor-pointer transition hover:scale-[1.02] active:scale-[0.98] ${
+            statusFilter === 'PENDIENTE'
+              ? 'border-amber-500 ring-2 ring-amber-400/40 bg-amber-50/60 dark:bg-amber-500/10'
+              : 'border-amber-200 dark:border-amber-500/30 hover:border-amber-400'
+          }`}
+          title="Filtrar incidentes pendientes"
+        >
+          <div className="flex items-center justify-between text-xs text-amber-900 dark:text-amber-400 font-bold uppercase tracking-wider">
             <span>Pendientes</span>
-            <Clock className="w-4 h-4" />
+            <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </div>
-          <p className="text-2xl font-black text-amber-400">{kpis.pendientes || 0}</p>
-          <span className="text-[10px] text-amber-300/80 font-medium">Por asignar auxilio</span>
+          <p className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400">{kpis.pendientes || 0}</p>
+          <span className="text-[11px] text-amber-950 dark:text-amber-300 font-bold block">Por asignar auxilio</span>
         </div>
 
         {/* En Proceso */}
-        <div className="bg-crisis-800 border border-sky-500/30 p-4 rounded-xl shadow space-y-1 bg-sky-500/5">
-          <div className="flex items-center justify-between text-xs text-sky-400 font-semibold">
+        <div
+          onClick={() => setSearchParams({ estado: 'EN_PROCESO' })}
+          className={`bg-white dark:bg-crisis-800 border-2 rounded-xl p-4 shadow-sm space-y-1.5 cursor-pointer transition hover:scale-[1.02] active:scale-[0.98] ${
+            statusFilter === 'EN_PROCESO'
+              ? 'border-sky-500 ring-2 ring-sky-400/40 bg-sky-50/60 dark:bg-sky-500/10'
+              : 'border-sky-200 dark:border-sky-500/30 hover:border-sky-400'
+          }`}
+          title="Filtrar incidentes en proceso"
+        >
+          <div className="flex items-center justify-between text-xs text-sky-900 dark:text-sky-400 font-bold uppercase tracking-wider">
             <span>En Proceso</span>
-            <RefreshCw className="w-4 h-4 animate-spin text-sky-400" />
+            <RefreshCw className="w-4 h-4 text-sky-600 dark:text-sky-400 animate-spin" />
           </div>
-          <p className="text-2xl font-black text-sky-400">{kpis.en_proceso || 0}</p>
-          <span className="text-[10px] text-sky-300/80 font-medium">Equipos en sitio</span>
+          <p className="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400">{kpis.en_proceso || 0}</p>
+          <span className="text-[11px] text-sky-950 dark:text-sky-300 font-bold block">Equipos en sitio</span>
         </div>
 
         {/* Atendidos */}
-        <div className="bg-crisis-800 border border-emerald-500/30 p-4 rounded-xl shadow space-y-1 bg-emerald-500/5">
-          <div className="flex items-center justify-between text-xs text-emerald-400 font-semibold">
+        <div
+          onClick={() => setSearchParams({ estado: 'ATENDIDO' })}
+          className={`bg-white dark:bg-crisis-800 border-2 rounded-xl p-4 shadow-sm space-y-1.5 cursor-pointer transition hover:scale-[1.02] active:scale-[0.98] ${
+            statusFilter === 'ATENDIDO'
+              ? 'border-emerald-500 ring-2 ring-emerald-400/40 bg-emerald-50/60 dark:bg-emerald-500/10'
+              : 'border-emerald-200 dark:border-emerald-500/30 hover:border-emerald-400'
+          }`}
+          title="Filtrar incidentes atendidos"
+        >
+          <div className="flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-400 font-bold uppercase tracking-wider">
             <span>Atendidos</span>
-            <CheckCircle2 className="w-4 h-4" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <p className="text-2xl font-black text-emerald-400">{kpis.atendidos || 0}</p>
-          <span className="text-[10px] text-emerald-300/80 font-medium">{kpis.tasa_resolucion || 0}% resolución</span>
+          <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">{kpis.atendidos || 0}</p>
+          <span className="text-[11px] text-emerald-950 dark:text-emerald-300 font-bold block">{kpis.tasa_resolucion || 0}% resolución</span>
         </div>
 
         {/* Críticos */}
-        <div className="bg-crisis-800 border border-red-500/30 p-4 rounded-xl shadow space-y-1 bg-red-500/5">
-          <div className="flex items-center justify-between text-xs text-red-400 font-semibold">
+        <div
+          onClick={() => setSearchParams({ gravedad: 'CRITICO' })}
+          className={`bg-white dark:bg-crisis-800 border-2 rounded-xl p-4 shadow-sm space-y-1.5 cursor-pointer transition hover:scale-[1.02] active:scale-[0.98] ${
+            gravityFilter === 'CRITICO'
+              ? 'border-red-500 ring-2 ring-red-400/40 bg-red-50/60 dark:bg-red-500/10'
+              : 'border-red-200 dark:border-red-500/30 hover:border-red-400'
+          }`}
+          title="Filtrar incidentes de nivel crítico"
+        >
+          <div className="flex items-center justify-between text-xs text-red-900 dark:text-red-400 font-bold uppercase tracking-wider">
             <span>Nivel Crítico</span>
-            <Flame className="w-4 h-4" />
+            <Flame className="w-4 h-4 text-red-600 dark:text-red-400" />
           </div>
-          <p className="text-2xl font-black text-red-400">{kpis.criticos || 0}</p>
-          <span className="text-[10px] text-red-300/80 font-medium">Riesgo inminente</span>
+          <p className="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-400">{kpis.criticos || 0}</p>
+          <span className="text-[11px] text-red-950 dark:text-red-300 font-bold block">Riesgo inminente</span>
         </div>
 
-        {/* Personas / Familias */}
-        <div className="bg-crisis-800 border border-crisis-700 p-4 rounded-xl shadow space-y-1">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        {/* Población en Riesgo */}
+        <div
+          className="bg-white dark:bg-crisis-800 border-2 border-purple-200 dark:border-purple-500/30 rounded-xl p-4 shadow-sm space-y-1.5"
+        >
+          <div className="flex items-center justify-between text-xs text-purple-900 dark:text-purple-400 font-bold uppercase tracking-wider">
             <span>Población en Riesgo</span>
-            <Users className="w-4 h-4 text-purple-400" />
+            <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
           </div>
-          <p className="text-2xl font-black text-purple-400">
-            {kpis.personas_atrapadas || 0} <span className="text-xs font-normal text-slate-400">atrapadas</span>
+          <p className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400">
+            {kpis.personas_atrapadas || 0} <span className="text-xs font-semibold text-purple-900 dark:text-purple-300">atrapadas</span>
           </p>
-          <span className="text-[10px] text-slate-400 font-medium">{kpis.familias_afectadas || 0} familias afectadas</span>
+          <span className="text-[11px] text-purple-950 dark:text-purple-300 font-bold block">{kpis.familias_afectadas || 0} familias afectadas</span>
         </div>
       </div>
 
-      {/* BARRA DE FILTROS Y BÚSQUEDA */}
-      <div className="bg-crisis-800 border border-crisis-700 p-4 rounded-xl shadow space-y-3">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          
-          {/* Tabs de Estado (Atendidos, Pendientes, En Proceso) */}
-          <div className="flex flex-wrap bg-slate-100 dark:bg-crisis-900 p-1 rounded-xl border border-slate-200 dark:border-crisis-700 text-xs gap-1">
-            <button
-              onClick={() => setStatusFilter('TODOS')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition ${
-                statusFilter === 'TODOS' ? 'bg-sky-600 text-white shadow' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-700/60'
-              }`}
-            >
-              Todos ({incidentes.length})
-            </button>
-            <button
-              onClick={() => setStatusFilter('PENDIENTE')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                statusFilter === 'PENDIENTE' ? 'bg-amber-600 text-white shadow' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-700/60'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" /> Pendientes
-            </button>
-            <button
-              onClick={() => setStatusFilter('EN_PROCESO')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                statusFilter === 'EN_PROCESO' ? 'bg-sky-600 text-white shadow' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-700/60'
-              }`}
-            >
-              <RefreshCw className="w-3.5 h-3.5" /> En Proceso
-            </button>
-            <button
-              onClick={() => setStatusFilter('ATENDIDO')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                statusFilter === 'ATENDIDO' ? 'bg-emerald-600 text-white shadow' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-700/60'
-              }`}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" /> Atendidos
-            </button>
-            <button
-              onClick={() => setStatusFilter('DESCARTADO')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                statusFilter === 'DESCARTADO' ? 'bg-slate-700 text-white shadow' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-700/60'
-              }`}
-            >
-              <XCircle className="w-3.5 h-3.5" /> Descartados
-            </button>
-          </div>
-
-          {/* Buscador */}
-          <div className="relative min-w-[240px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="Buscar por sector, evento o detalle..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-crisis-900 border border-slate-300 dark:border-crisis-600 rounded-lg text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500"
-            />
-          </div>
-        </div>
-
-        {/* Filtros secundarios: Gravedad y Origen */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-crisis-700/80 text-xs">
-          <span className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
-            <Filter className="w-3 h-3" /> Filtrar por:
+      {/* BARRA SIMPLIFICADA: INDICADOR DE FILTRO ACTIVO Y BÚSQUEDA RÁPIDA */}
+      <div className="bg-white dark:bg-crisis-800 border border-slate-200 dark:border-crisis-700 p-3.5 rounded-xl shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-slate-800 dark:text-slate-300 font-bold flex items-center gap-1.5">
+            <Filter className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+            <span>Filtro activo:</span>
           </span>
 
-          <select
-            value={gravityFilter}
-            onChange={(e) => setGravityFilter(e.target.value)}
-            className="bg-crisis-900 border border-crisis-600 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none"
-          >
-            <option value="TODAS">Toda Gravedad</option>
-            <option value="CRITICO">Crítico</option>
-            <option value="ALTO">Alto</option>
-            <option value="MEDIO">Medio</option>
-            <option value="BAJO">Bajo</option>
-          </select>
+          {hasActiveFilter ? (
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-lg text-xs font-black bg-sky-100 text-sky-950 border border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/40 flex items-center gap-1 shadow-sm">
+                {getActiveFilterLabel()}
+              </span>
+              <button
+                onClick={() => {
+                  setSearchParams({});
+                  setSearchTerm('');
+                }}
+                className="px-2.5 py-1 text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-red-700 dark:hover:text-red-400 bg-slate-100 dark:bg-crisis-700 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg border border-slate-300 dark:border-crisis-600 transition flex items-center gap-1 shadow-sm"
+                title="Quitar filtros y mostrar todos los incidentes"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Ver Todos</span>
+              </button>
+            </div>
+          ) : (
+            <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-800 dark:bg-crisis-700 dark:text-slate-200 border border-slate-200 dark:border-crisis-600">
+              Mostrando Todos los Incidentes ({incidentes.length})
+            </span>
+          )}
 
-          <select
-            value={originFilter}
-            onChange={(e) => setOriginFilter(e.target.value)}
-            className="bg-crisis-900 border border-crisis-600 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none"
-          >
-            <option value="TODOS">Todos los Orígenes</option>
-            <option value="CIUDADANO">📢 Reporte Ciudadano</option>
-            <option value="SIMULACION">🤖 Simulación IA / Pronóstico</option>
-          </select>
+          <span className="text-xs text-slate-700 dark:text-slate-400 font-bold pl-2 hidden md:inline">
+            • {filteredList.length} incidentes mostrados
+          </span>
+        </div>
+
+        {/* Buscador de Incidentes */}
+        <div className="relative min-w-[260px]">
+          <Search className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-2.5" />
+          <input
+            type="text"
+            placeholder="Buscar por sector, evento o detalle..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-crisis-900 border border-slate-300 dark:border-crisis-600 rounded-lg text-xs text-slate-900 dark:text-white placeholder-slate-500 font-medium focus:outline-none focus:ring-2 focus:ring-sky-500"
+          />
         </div>
       </div>
 
-      {/* LISTADO DE SEGUIMIENTO DE INCIDENTES */}
+      {/* LISTADO DE SEGUIMIENTO DE INCIDENTES (CON ALTO CONTRASTE Y LEGIBILIDAD) */}
       <div className="space-y-3">
         {loading ? (
-          <div className="text-center py-16 bg-crisis-800 rounded-2xl border border-crisis-700 space-y-3">
-            <RefreshCw className="w-8 h-8 mx-auto text-sky-400 animate-spin" />
-            <p className="text-xs text-slate-400">Cargando incidentes y estadísticas del COE...</p>
+          <div className="text-center py-16 bg-white dark:bg-crisis-800 rounded-2xl border border-slate-200 dark:border-crisis-700 space-y-3">
+            <RefreshCw className="w-8 h-8 mx-auto text-sky-600 dark:text-sky-400 animate-spin" />
+            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Cargando incidentes y estadísticas del COE...</p>
           </div>
         ) : filteredList.length === 0 ? (
-          <div className="text-center py-16 bg-crisis-800 rounded-2xl border border-crisis-700 space-y-2">
-            <FileCheck className="w-10 h-10 mx-auto text-slate-600" />
-            <p className="text-sm font-bold text-white">No hay incidentes con los filtros seleccionados.</p>
-            <p className="text-xs text-slate-400">Intenta cambiar los filtros de estado o la búsqueda.</p>
+          <div className="text-center py-16 bg-white dark:bg-crisis-800 rounded-2xl border border-slate-200 dark:border-crisis-700 space-y-2">
+            <FileCheck className="w-10 h-10 mx-auto text-slate-400 dark:text-slate-500" />
+            <p className="text-base font-extrabold text-slate-900 dark:text-white">No hay incidentes con los filtros seleccionados.</p>
+            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Intenta seleccionar otra categoría en el menú lateral o hacer clic en "Ver Todos".</p>
           </div>
         ) : (
           filteredList.map((inc) => (
             <div
               key={inc.id}
-              className="bg-crisis-800 border border-crisis-700 hover:border-slate-500 rounded-xl p-4 sm:p-5 transition shadow-lg space-y-3"
+              className="bg-white dark:bg-crisis-800 border-2 border-slate-200 dark:border-crisis-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-2xl p-5 transition shadow-sm space-y-3.5"
             >
               {/* Fila Superior: Badges y Fecha */}
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -404,79 +462,79 @@ export const IncidentCommandPage = () => {
                   {getGravedadBadge(inc.nivel_gravedad)}
 
                   {inc.es_simulacion ? (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-purple-100 text-purple-950 border border-purple-300 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/40 shadow-sm">
                       🤖 Simulación IA COE
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-sky-100 text-sky-950 border border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/40 shadow-sm">
                       📢 Reporte Ciudadano Verificado
                     </span>
                   )}
 
-                  <span className="text-[11px] font-mono text-slate-400">
+                  <span className="text-[11px] font-mono font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-crisis-900 px-2 py-0.5 rounded border border-slate-200 dark:border-crisis-700">
                     ID: {inc.id.substring(0, 8)}
                   </span>
                 </div>
 
-                <div className="text-[11px] text-slate-400">
+                <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   {new Date(inc.fecha_incidente).toLocaleString()}
                 </div>
               </div>
 
-              {/* Contenido Central: Tipo y Descripción */}
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                <div className="lg:col-span-3 space-y-1.5">
-                  <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              {/* Contenido Central: Tipo y Descripción de Alto Contraste */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+                <div className="lg:col-span-3 space-y-2">
+                  <h3 className="text-base sm:text-lg font-black text-slate-950 dark:text-white flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
                     <span>{inc.tipo_evento.replace(/_/g, ' ')}</span>
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-300">
+                  <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
                     {inc.descripcion}
                   </p>
 
                   {inc.estimacion_danos_vivienda && (
-                    <p className="text-[11px] text-slate-400 italic">
-                      Danos reportados: {inc.estimacion_danos_vivienda}
-                    </p>
+                    <div className="text-xs text-slate-800 dark:text-slate-300 font-semibold bg-slate-100 dark:bg-slate-800/80 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <strong>Daños reportados:</strong> {inc.estimacion_danos_vivienda}
+                    </div>
                   )}
                 </div>
 
-                {/* Métricas del Incidente */}
-                <div className="bg-slate-50 dark:bg-crisis-900/80 p-3 rounded-xl border border-slate-200 dark:border-crisis-700 text-xs space-y-1.5 shadow-sm">
-                  <div className="flex justify-between text-slate-700 dark:text-slate-300 font-medium">
+                {/* Métricas del Incidente: Alto Contraste */}
+                <div className="bg-slate-100 dark:bg-crisis-900/90 p-3.5 rounded-xl border border-slate-300 dark:border-crisis-700 text-xs space-y-2 shadow-sm">
+                  <div className="flex justify-between items-center text-slate-800 dark:text-slate-300 font-bold">
                     <span>Personas atrapadas:</span>
-                    <span className="font-bold text-red-600 dark:text-red-400">{inc.personas_atrapadas}</span>
+                    <span className="font-black text-sm text-red-700 dark:text-red-400">{inc.personas_atrapadas}</span>
                   </div>
-                  <div className="flex justify-between text-slate-700 dark:text-slate-300 font-medium">
+                  <div className="flex justify-between items-center text-slate-800 dark:text-slate-300 font-bold">
                     <span>Familias afectadas:</span>
-                    <span className="font-bold text-amber-600 dark:text-amber-400">{inc.familias_afectadas}</span>
+                    <span className="font-black text-sm text-amber-800 dark:text-amber-400">{inc.familias_afectadas}</span>
                   </div>
-                  <div className="flex justify-between text-slate-500 dark:text-slate-400 text-[10px] pt-1.5 border-t border-slate-200 dark:border-crisis-700">
+                  <div className="flex justify-between items-center text-slate-700 dark:text-slate-400 text-xs pt-1.5 border-t border-slate-300 dark:border-crisis-700 font-semibold">
                     <span>Informante:</span>
-                    <span className="truncate max-w-[120px] font-semibold">{inc.usuario_nombre}</span>
+                    <span className="truncate max-w-[120px] font-bold text-slate-900 dark:text-white">{inc.usuario_nombre}</span>
                   </div>
                 </div>
               </div>
 
               {/* Barra de Acciones y Transición de Estados (Workflow COE) */}
-              <div className="pt-3 border-t border-crisis-700/80 flex flex-wrap items-center justify-between gap-3">
+              <div className="pt-3 border-t border-slate-200 dark:border-crisis-700/80 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => navigate('/')}
-                    className="px-2.5 py-1 text-xs text-sky-400 hover:text-white hover:bg-crisis-700 rounded-lg border border-sky-500/30 flex items-center gap-1.5 transition"
+                    className="px-3 py-1.5 text-xs font-bold text-sky-800 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 hover:bg-sky-100 dark:hover:bg-sky-500/20 rounded-lg border border-sky-300 dark:border-sky-500/30 flex items-center gap-1.5 transition shadow-sm"
                     title="Ver coordenadas en el mapa satelital"
                   >
-                    <MapPin className="w-3.5 h-3.5" />
+                    <MapPin className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
                     <span>Ver en Mapa</span>
                   </button>
                 </div>
 
-                {/* Botones de Cambio de Estado (Módulo 3) */}
-                <div className="flex flex-wrap items-center gap-1.5">
+                {/* Botones de Cambio de Estado con Alto Contraste */}
+                <div className="flex flex-wrap items-center gap-2">
                   {inc.estado === 'PENDIENTE' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'EN_PROCESO')}
-                      className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow"
+                      className="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow active:scale-95"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
                       <span>Despachar / En Proceso</span>
@@ -486,7 +544,7 @@ export const IncidentCommandPage = () => {
                   {inc.estado === 'EN_PROCESO' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'ATENDIDO')}
-                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow"
+                      className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow active:scale-95"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Marcar Atendido</span>
@@ -496,9 +554,9 @@ export const IncidentCommandPage = () => {
                   {inc.estado === 'ATENDIDO' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'EN_PROCESO')}
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs transition flex items-center gap-1"
+                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition flex items-center gap-1 shadow active:scale-95"
                     >
-                      <RefreshCw className="w-3 h-3" />
+                      <RefreshCw className="w-3.5 h-3.5" />
                       <span>Reabrir Caso</span>
                     </button>
                   )}
@@ -506,7 +564,7 @@ export const IncidentCommandPage = () => {
                   {inc.estado !== 'DESCARTADO' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'DESCARTADO')}
-                      className="px-2.5 py-1.5 rounded-lg bg-crisis-700 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-crisis-600 text-xs transition"
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 border border-slate-300 text-xs font-bold transition dark:bg-crisis-700 dark:text-slate-300 dark:border-crisis-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                       title="Descartar reporte no verificado o duplicado"
                     >
                       Descartar
@@ -516,10 +574,10 @@ export const IncidentCommandPage = () => {
                   {/* Eliminar (Admin) */}
                   <button
                     onClick={() => handleDelete(inc.id)}
-                    className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-crisis-700 rounded-lg transition"
+                    className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-crisis-700 dark:hover:text-red-400 rounded-lg transition"
                     title="Eliminar reporte de la base de datos"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -531,46 +589,46 @@ export const IncidentCommandPage = () => {
       {/* MODAL DE EMISIÓN DE ALERTA SECTORIAL (MÓDULO 3) */}
       {showAlertModal && (
         <div className="fixed inset-0 z-[1500] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-red-400 font-black text-sm uppercase">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-black text-sm uppercase">
                 <BellRing className="w-5 h-5 animate-bounce" />
                 <span>Emisor de Alerta Temprana Sectorial</span>
               </div>
               <button
                 onClick={() => setShowAlertModal(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white"
               >
                 ✕
               </button>
             </div>
 
             {alertSuccess ? (
-              <div className="p-4 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-center space-y-2 text-emerald-300">
-                <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400" />
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30 rounded-xl text-center space-y-2 text-emerald-800 dark:text-emerald-300 font-bold">
+                <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-600 dark:text-emerald-400" />
                 <p className="font-bold text-sm">¡Alerta Difundida con Éxito!</p>
-                <p className="text-xs">Notificación enviada a la Red de Respuesta y Módulo de Monitoreo.</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Notificación enviada a la Red de Respuesta y Módulo de Monitoreo.</p>
               </div>
             ) : (
               <form onSubmit={handleEmitSectorAlert} className="space-y-3.5 text-xs">
                 <div>
-                  <label className="text-slate-300 font-semibold">Sector o Barrio Afectado</label>
+                  <label className="text-slate-800 dark:text-slate-300 font-semibold">Sector o Barrio Afectado</label>
                   <input
                     type="text"
                     required
                     value={sectorAlert.sector}
                     onChange={(e) => setSectorAlert({ ...sectorAlert, sector: e.target.value })}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-slate-300 font-semibold">Nivel de Alerta</label>
+                    <label className="text-slate-800 dark:text-slate-300 font-semibold">Nivel de Alerta</label>
                     <select
                       value={sectorAlert.nivel}
                       onChange={(e) => setSectorAlert({ ...sectorAlert, nivel: e.target.value })}
-                      className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                      className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
                     >
                       <option value="ROJA">🔴 ALERTA ROJA (Evacuación)</option>
                       <option value="NARANJA">🟠 ALERTA NARANJA (Preparación)</option>
@@ -578,11 +636,11 @@ export const IncidentCommandPage = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="text-slate-300 font-semibold">Tipo de Amenaza</label>
+                    <label className="text-slate-800 dark:text-slate-300 font-semibold">Tipo de Amenaza</label>
                     <select
                       value={sectorAlert.tipo}
                       onChange={(e) => setSectorAlert({ ...sectorAlert, tipo: e.target.value })}
-                      className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                      className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
                     >
                       <option value="DESBORDE_INMINENTE">Desborde Fluvial Río Teaone</option>
                       <option value="DESLIZAMIENTO_MASIVO">Deslizamiento de Talud</option>
@@ -592,38 +650,38 @@ export const IncidentCommandPage = () => {
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold">Mensaje Oficial a la Población</label>
+                  <label className="text-slate-800 dark:text-slate-300 font-semibold">Mensaje Oficial a la Población</label>
                   <textarea
                     rows="2"
                     required
                     value={sectorAlert.mensaje}
                     onChange={(e) => setSectorAlert({ ...sectorAlert, mensaje: e.target.value })}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-semibold">Instrucciones de Evacuación / Albergue Asignado</label>
+                  <label className="text-slate-800 dark:text-slate-300 font-semibold">Instrucciones de Evacuación / Albergue Asignado</label>
                   <textarea
                     rows="2"
                     required
                     value={sectorAlert.instrucciones}
                     onChange={(e) => setSectorAlert({ ...sectorAlert, instrucciones: e.target.value })}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white text-xs"
                   />
                 </div>
 
-                <div className="pt-2 flex justify-end gap-2">
+                <div className="pt-2 flex justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
                   <button
                     type="button"
                     onClick={() => setShowAlertModal(false)}
-                    className="px-3 py-1.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg"
+                    className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg font-medium"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow flex items-center gap-1.5"
+                    className="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow flex items-center gap-1.5 active:scale-95"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>Transmitir Alerta</span>

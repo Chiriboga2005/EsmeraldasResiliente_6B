@@ -115,7 +115,20 @@ html.light, body.light {
   color: #ffffff !important;
 }
 
-/* Asegurar que botones y enlaces con fondos suaves/pasteles mantengan texto oscuro y legible */
+/* Asegurar que textos oscuros en modo claro mantengan alto contraste absoluto */
+.light .text-slate-950 {
+  color: #020617 !important;
+}
+.light .text-slate-900 {
+  color: #0f172a !important;
+}
+.light .text-slate-800 {
+  color: #1e293b !important;
+}
+.light .text-slate-700 {
+  color: #334155 !important;
+}
+
 .light .text-sky-800,
 .light .text-sky-900,
 .light .text-sky-950 {
@@ -123,18 +136,26 @@ html.light, body.light {
 }
 
 .light .text-amber-800,
-.light .text-amber-900 {
+.light .text-amber-900,
+.light .text-amber-950 {
   color: #78350f !important;
 }
 
 .light .text-emerald-800,
-.light .text-emerald-900 {
+.light .text-emerald-900,
+.light .text-emerald-950 {
   color: #065f46 !important;
 }
 
 .light .text-red-800,
-.light .text-red-900 {
+.light .text-red-900,
+.light .text-red-950 {
   color: #991b1b !important;
+}
+
+.light .text-purple-900,
+.light .text-purple-950 {
+  color: #581c87 !important;
 }
 
 /* Popups Leaflet en Modo Claro */
