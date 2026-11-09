@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
+import { AIFloatingAssistant } from '../common/AIFloatingAssistant';
 
 export const MainLayout = () => {
   return (
@@ -13,6 +14,8 @@ export const MainLayout = () => {
           <Outlet />
         </main>
       </div>
+      {/* Botón Flotante y Consola de Inteligencia Artificial (Módulo 6) */}
+      <AIFloatingAssistant />
     </div>
   );
 };

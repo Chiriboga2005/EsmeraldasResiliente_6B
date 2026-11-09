@@ -30,6 +30,9 @@ urlpatterns = [
     # Módulo 5: Asistencia Humanitaria y Censo
     path('api/v1/humanitaria/', include('apps.humanitarian_aid.urls')),
 
+    # Módulo 6: Inteligencia Artificial y Análisis Predictivo (Scikit-Learn + Asistente IA)
+    path('api/v1/ia/', include('apps.ai_analytics.urls')),
+
     # Archivos estáticos de Vite (JS, CSS, imágenes compiladas)
     re_path(r'^assets/(?P<path>.*)$', serve, {'document_root': ASSETS_DIR}),
     re_path(r'^(?P<path>favicon\.svg|icons\.svg|manifest\.json)$', serve, {'document_root': FRONTEND_DIST_DIR}),

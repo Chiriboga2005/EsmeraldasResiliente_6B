@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'apps.reports.apps.ReportsConfig',
     'apps.evacuation.apps.EvacuationConfig',
     'apps.humanitarian_aid.apps.HumanitarianAidConfig',
+    'apps.ai_analytics.apps.AiAnalyticsConfig',
 ]
 
 MIDDLEWARE = [
