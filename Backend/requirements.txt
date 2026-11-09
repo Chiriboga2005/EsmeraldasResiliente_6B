@@ -1,0 +1,26 @@
+# Framework Web y API
+Django>=5.1.0,<5.2.0
+djangorestframework>=3.15.2
+djangorestframework-gis>=1.1
+django-cors-headers>=4.4.0
+django-filter>=24.3
+djangorestframework-simplejwt>=5.3.1
+
+# Conector de Base de Datos Espacial PostgreSQL (PostGIS)
+psycopg2-binary>=2.9.9
+
+# Tiempo Real / WebSockets para el COE
+channels>=4.1.0
+channels-redis>=4.2.0
+daphne>=4.1.2
+
+# Consumo de APIs Externas (OpenWeatherMap) y Utilidades
+requests>=2.32.3
+python-dotenv>=1.0.1
+Pillow>=10.4.0
+
+# Ciencia de Datos e IA (Módulo 6 - Predicciones de Riesgo)
+scikit-learn>=1.5.1
+pandas>=2.2.2
+numpy>=1.26.4
+
