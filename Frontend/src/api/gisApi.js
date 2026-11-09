@@ -11,7 +11,10 @@ export const gisApi = {
   },
   getInfraestructuras: async () => {
     const res = await apiClient.get('/gis/infraestructuras/');
-    return res.data?.results || res.data;
+    if (res.data?.results?.features) return res.data.results;
+    if (res.data?.features) return res.data;
+    if (res.data?.results) return res.data.results;
+    return res.data;
   },
   updateInfraestructura: async (id, data) => {
     const res = await apiClient.patch(`/gis/infraestructuras/${id}/`, data);

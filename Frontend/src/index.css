@@ -51,26 +51,13 @@ html.light, body.light {
 .light h1:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-amber"]),
 .light h2:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-amber"]),
 .light h3:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-amber"]),
-.light h4:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-amber"]),
-.light .text-white:not(button):not(a):not(span[class*="bg-"]):not(div[class*="bg-"]) {
+.light h4:not([class*="text-sky"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-amber"]) {
   color: #0f172a !important;
 }
 
-.light .text-slate-100,
-.light .text-slate-200 {
-  color: #1e293b !important;
-}
-
-.light .text-slate-300 {
-  color: #334155 !important;
-}
-
-.light .text-slate-400 {
-  color: #64748b !important;
-}
-
-.light .text-slate-500 {
-  color: #64748b !important;
+/* En modo claro, los textos blancos generales sin fondo se adaptan a oscuro */
+.light .text-white:not(button):not(a):not(span[class*="bg-"]):not(div[class*="bg-"]):not([class*="bg-"]) {
+  color: #0f172a;
 }
 
 /* Fondos oscuros adaptados a claro (incluyendo modificadores /80, /90, /95) */
@@ -102,22 +89,52 @@ html.light, body.light {
   color: #94a3b8 !important;
 }
 
-/* Garantizar que los botones y tags con fondo mantengan texto blanco legible */
-.light button[class*="bg-sky-"],
-.light button[class*="bg-emerald-"],
-.light button[class*="bg-red-"],
-.light button[class*="bg-rose-"],
-.light button[class*="bg-amber-"],
-.light button[class*="bg-indigo-"],
-.light button[class*="bg-purple-"],
-.light a[class*="bg-sky-"],
-.light a[class*="bg-emerald-"],
-.light a[class*="bg-red-"],
-.light .text-white[class*="bg-"],
-.light [class*="from-sky-"],
-.light [class*="from-red-"],
-.light [class*="from-amber-"] {
+/* Botones con fondo sólido intenso en tema claro mantienen texto blanco de alto contraste */
+.light button[class*="bg-sky-600"],
+.light button[class*="bg-sky-700"],
+.light button[class*="bg-blue-600"],
+.light button[class*="bg-blue-700"],
+.light button[class*="bg-emerald-600"],
+.light button[class*="bg-emerald-700"],
+.light button[class*="bg-red-600"],
+.light button[class*="bg-red-700"],
+.light button[class*="bg-rose-600"],
+.light button[class*="bg-rose-700"],
+.light button[class*="bg-orange-500"],
+.light button[class*="bg-orange-600"],
+.light button[class*="bg-indigo-600"],
+.light button[class*="bg-indigo-700"],
+.light button[class*="bg-purple-600"],
+.light button[class*="bg-purple-700"],
+.light a[class*="bg-sky-600"],
+.light a[class*="bg-emerald-600"],
+.light a[class*="bg-red-600"],
+.light [class*="from-red-600"],
+.light [class*="from-sky-600"],
+.light [class*="from-amber-600"] {
   color: #ffffff !important;
+}
+
+/* Asegurar que botones y enlaces con fondos suaves/pasteles mantengan texto oscuro y legible */
+.light .text-sky-800,
+.light .text-sky-900,
+.light .text-sky-950 {
+  color: #0369a1 !important;
+}
+
+.light .text-amber-800,
+.light .text-amber-900 {
+  color: #78350f !important;
+}
+
+.light .text-emerald-800,
+.light .text-emerald-900 {
+  color: #065f46 !important;
+}
+
+.light .text-red-800,
+.light .text-red-900 {
+  color: #991b1b !important;
 }
 
 /* Popups Leaflet en Modo Claro */

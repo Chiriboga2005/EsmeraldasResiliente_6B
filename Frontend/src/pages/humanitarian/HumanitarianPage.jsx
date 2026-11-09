@@ -264,13 +264,13 @@ export const HumanitarianPage = () => {
         </div>
 
         {/* Selector de Pestañas */}
-        <div className="flex flex-wrap bg-crisis-900 p-1 rounded-xl border border-crisis-700 text-xs gap-1">
+        <div className="flex flex-wrap bg-slate-100 dark:bg-crisis-900 p-1 rounded-xl border border-slate-300 dark:border-crisis-700 text-xs gap-1">
           <button
             onClick={() => setTab('censo')}
             className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
               tab === 'censo'
                 ? 'bg-sky-600 text-white shadow'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-800'
             }`}
           >
             <Users className="w-4 h-4" /> Ficha Censal ({familias.length})
@@ -280,7 +280,7 @@ export const HumanitarianPage = () => {
             className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
               tab === 'bodegas'
                 ? 'bg-sky-600 text-white shadow'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-800'
             }`}
           >
             <Building2 className="w-4 h-4" /> Bodegas de Acopio ({bodegas.length})
@@ -290,7 +290,7 @@ export const HumanitarianPage = () => {
             className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
               tab === 'suministros'
                 ? 'bg-sky-600 text-white shadow'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-800'
             }`}
           >
             <Boxes className="w-4 h-4" /> Catálogo de Kits ({suministros.length})

@@ -296,7 +296,7 @@ export const IncidentCommandPage = () => {
             <button
               onClick={() => setStatusFilter('TODOS')}
               className={`px-3 py-1.5 rounded-lg font-bold transition ${
-                statusFilter === 'TODOS' ? 'bg-sky-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                statusFilter === 'TODOS' ? 'bg-sky-600 text-white shadow' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-700/60'
               }`}
             >
               Todos ({incidentes.length})
@@ -304,7 +304,7 @@ export const IncidentCommandPage = () => {
             <button
               onClick={() => setStatusFilter('PENDIENTE')}
               className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                statusFilter === 'PENDIENTE' ? 'bg-amber-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                statusFilter === 'PENDIENTE' ? 'bg-amber-600 text-white shadow' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-700/60'
               }`}
             >
               <Clock className="w-3.5 h-3.5" /> Pendientes
@@ -312,7 +312,7 @@ export const IncidentCommandPage = () => {
             <button
               onClick={() => setStatusFilter('EN_PROCESO')}
               className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                statusFilter === 'EN_PROCESO' ? 'bg-sky-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                statusFilter === 'EN_PROCESO' ? 'bg-sky-600 text-white shadow' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-700/60'
               }`}
             >
               <RefreshCw className="w-3.5 h-3.5" /> En Proceso
@@ -320,7 +320,7 @@ export const IncidentCommandPage = () => {
             <button
               onClick={() => setStatusFilter('ATENDIDO')}
               className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                statusFilter === 'ATENDIDO' ? 'bg-emerald-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                statusFilter === 'ATENDIDO' ? 'bg-emerald-600 text-white shadow' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-700/60'
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" /> Atendidos
@@ -328,7 +328,7 @@ export const IncidentCommandPage = () => {
             <button
               onClick={() => setStatusFilter('DESCARTADO')}
               className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                statusFilter === 'DESCARTADO' ? 'bg-slate-700 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                statusFilter === 'DESCARTADO' ? 'bg-slate-700 text-white shadow' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-700/60'
               }`}
             >
               <XCircle className="w-3.5 h-3.5" /> Descartados

@@ -45,10 +45,10 @@ export const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-64 bg-crisis-800 border-r border-crisis-700 flex flex-col justify-between shrink-0">
+    <aside className="w-64 bg-white dark:bg-crisis-800 border-r border-slate-200 dark:border-crisis-700 flex flex-col justify-between shrink-0">
       <div className="p-4 space-y-6">
         <div>
-          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 px-2">
+          <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-3 px-2">
             Módulos del Sistema
           </p>
           <nav className="space-y-1.5">
@@ -62,8 +62,8 @@ export const Sidebar = () => {
                   className={({ isActive }) =>
                     `flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition ${
                       isActive
-                        ? 'bg-sky-100/80 dark:bg-sky-500/15 text-sky-800 dark:text-sky-300 border border-sky-400/50 dark:border-sky-500/30 font-bold shadow-sm'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-crisis-700/60 hover:text-slate-900 dark:hover:text-white'
+                        ? 'bg-sky-100 dark:bg-sky-500/20 text-sky-950 dark:text-sky-300 border border-sky-300 dark:border-sky-500/40 font-bold shadow-sm'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-crisis-700/60 hover:text-slate-950 dark:hover:text-white'
                     }`
                   }
                 >

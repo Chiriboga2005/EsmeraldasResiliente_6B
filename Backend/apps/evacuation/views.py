@@ -14,6 +14,7 @@ class AlberguesListGeoJSONAPIView(generics.ListCreateAPIView):
     queryset = AlbergueTemporal.objects.all().order_by('id')
     serializer_class = AlbergueTemporalGeoSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class = None
 
     def create(self, request, *args, **kwargs):
         data = request.data

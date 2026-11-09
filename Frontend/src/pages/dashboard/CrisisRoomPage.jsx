@@ -296,6 +296,7 @@ export const CrisisRoomPage = () => {
   // Cantón activo seleccionado o detectado
   const [activeCanton, setActiveCanton] = useState(CANTONES[0]);
   const [targetFly, setTargetFly] = useState(null);
+  const [mapCenterCoords, setMapCenterCoords] = useState(ESMERALDAS_CENTER);
 
   // Clima en vivo del cantón activo
   const [clima, setClima] = useState(null);
@@ -317,6 +318,25 @@ export const CrisisRoomPage = () => {
     redHidrica: true,
   });
 
+  // Normalización defensiva de listas de infraestructuras y albergues
+  const infraFeatures = useMemo(() => {
+    if (!infraestructuras) return [];
+    if (Array.isArray(infraestructuras)) return infraestructuras;
+    if (Array.isArray(infraestructuras.features)) return infraestructuras.features;
+    if (Array.isArray(infraestructuras.results)) return infraestructuras.results;
+    if (infraestructuras.results?.features) return infraestructuras.results.features;
+    return [];
+  }, [infraestructuras]);
+
+  const shelterFeatures = useMemo(() => {
+    if (!albergues) return [];
+    if (Array.isArray(albergues)) return albergues;
+    if (Array.isArray(albergues.features)) return albergues.features;
+    if (Array.isArray(albergues.results)) return albergues.results;
+    if (albergues.results?.features) return albergues.results.features;
+    return [];
+  }, [albergues]);
+
   // Línea de tiempo interactiva (MSN El Tiempo Timeline)
   const [timelineIndex, setTimelineIndex] = useState(11);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -336,18 +356,77 @@ export const CrisisRoomPage = () => {
 
   const handleCreateInfraestructura = async (e) => {
     e.preventDefault();
+    if (!infraForm.nombre?.trim()) {
+      alert('Por favor ingrese el nombre oficial de la infraestructura.');
+      return;
+    }
+    const latNum = Number(infraForm.lat);
+    const lonNum = Number(infraForm.lon);
+    if (isNaN(latNum) || isNaN(lonNum)) {
+      alert('Coordenadas GPS no válidas.');
+      return;
+    }
+
+    const payload = {
+      nombre: infraForm.nombre.trim(),
+      tipo: infraForm.tipo || 'HOSPITAL',
+      direccion: infraForm.direccion?.trim() || 'Cantón Esmeraldas',
+      telefono_contacto: infraForm.telefono_contacto?.trim() || '',
+      contacto_responsable: infraForm.contacto_responsable?.trim() || '',
+      capacidad_atencion: Number(infraForm.capacidad_atencion) || 100,
+      lat: Number(latNum.toFixed(5)),
+      lon: Number(lonNum.toFixed(5)),
+    };
+
     try {
-      await gisApi.createInfraestructura(infraForm);
+      const resCreated = await gisApi.createInfraestructura(payload);
       setShowCreateInfraModal(false);
-      const res = await gisApi.getInfraestructuras();
-      setInfraestructuras(res);
+
+      const createdFeature = resCreated?.infraestructura || {
+        type: 'Feature',
+        id: resCreated?.id || Date.now(),
+        geometry: {
+          type: 'Point',
+          coordinates: [payload.lon, payload.lat],
+        },
+        properties: {
+          id: resCreated?.id || Date.now(),
+          nombre: payload.nombre,
+          tipo: payload.tipo,
+          direccion: payload.direccion,
+          telefono_contacto: payload.telefono_contacto,
+          contacto_responsable: payload.contacto_responsable,
+          capacidad_atencion: payload.capacidad_atencion,
+          activo: true,
+        },
+      };
+
+      // Inserción visual reactiva inmediata en el visor
+      setInfraestructuras((prev) => {
+        if (!prev) return { type: 'FeatureCollection', features: [createdFeature] };
+        if (Array.isArray(prev)) return [...prev, createdFeature];
+        const prevFeatures = prev.features || [];
+        return {
+          ...prev,
+          features: [...prevFeatures, createdFeature],
+        };
+      });
+
+      // Mover cámara a la nueva infraestructura
+      setTargetFly({ lat: payload.lat, lon: payload.lon, zoom: 15, ts: Date.now() });
+
+      // Sincronizar desde la base de datos PostgreSQL en Aiven
+      const fresh = await gisApi.getInfraestructuras();
+      if (fresh) setInfraestructuras(fresh);
+
       setSaveStatus({
         type: 'success',
-        text: `✅ ${infraForm.tipo}: "${infraForm.nombre}" guardado exitosamente en la base de datos PostgreSQL.`,
+        text: `✅ ${payload.tipo}: "${payload.nombre}" registrado exitosamente en la base de datos Aiven.`,
       });
       setTimeout(() => setSaveStatus(null), 6000);
     } catch (err) {
-      alert('Error guardando infraestructura: ' + (err.response?.data?.detail || err.message));
+      console.error('Error guardando infraestructura:', err);
+      alert('Error guardando infraestructura en Aiven: ' + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -505,6 +584,7 @@ export const CrisisRoomPage = () => {
 
   // Detector automático de cantón al mover o hacer zoom en el mapa
   const handleMapCenterChanged = useCallback((lat, lon) => {
+    setMapCenterCoords([lat, lon]);
     let closest = CANTONES[0];
     let minDistance = Infinity;
 
@@ -588,27 +668,27 @@ export const CrisisRoomPage = () => {
         {/* ========================================================================= */}
         {/* BARRA SUPERIOR: SELECTOR DE CAPAS METEOROLÓGICAS & MAPA BASE */}
         {/* ========================================================================= */}
-        <div className="bg-crisis-800/95 backdrop-blur-md border-b border-crisis-700 px-3 md:px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 z-10 shadow-lg">
+        <div className="bg-white/95 dark:bg-crisis-800/95 backdrop-blur-md border-b border-slate-200 dark:border-crisis-700 px-3 md:px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 z-10 shadow-sm">
           
           {/* Título & Badge de Monitoreo */}
           <div className="flex items-center gap-2.5">
-            <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-300 dark:border-emerald-500/20 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span>
               SALA DE CRISIS COE • RADAR EN VIVO
             </span>
-            <span className="text-[11px] text-slate-300 hidden lg:inline font-medium">
+            <span className="text-[11px] text-slate-600 dark:text-slate-300 hidden lg:inline font-medium">
               Provincia de Esmeraldas • Open-Meteo & OpenWeatherMap
             </span>
           </div>
 
           {/* BARRA DE MODOS METEOROLÓGICOS (ESTILO MSN EL TIEMPO) */}
-          <div className="flex items-center bg-crisis-900/90 p-1 rounded-xl border border-crisis-700/80 shadow-inner gap-1">
+          <div className="flex items-center bg-slate-100 dark:bg-crisis-900/90 p-1 rounded-xl border border-slate-300 dark:border-crisis-700/80 shadow-inner gap-1">
             <button
               onClick={() => setWeatherMode('temp')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 weatherMode === 'temp'
-                  ? 'bg-amber-500 text-slate-950 shadow-md ring-1 ring-amber-300'
-                  : 'text-slate-300 hover:text-white hover:bg-crisis-800'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-md ring-1 ring-amber-300'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-800'
               }`}
               title="Capa de Temperatura"
             >
@@ -620,8 +700,8 @@ export const CrisisRoomPage = () => {
               onClick={() => setWeatherMode('rain')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 weatherMode === 'rain'
-                  ? 'bg-sky-500 text-white shadow-md ring-1 ring-sky-300'
-                  : 'text-slate-300 hover:text-white hover:bg-crisis-800'
+                  ? 'bg-sky-600 text-white shadow-md ring-1 ring-sky-300'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-800'
               }`}
               title="Capa de Precipitaciones y Lluvias"
             >
@@ -633,8 +713,8 @@ export const CrisisRoomPage = () => {
               onClick={() => setWeatherMode('wind')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 weatherMode === 'wind'
-                  ? 'bg-emerald-500 text-slate-950 shadow-md ring-1 ring-emerald-300'
-                  : 'text-slate-300 hover:text-white hover:bg-crisis-800'
+                  ? 'bg-emerald-600 text-white shadow-md ring-1 ring-emerald-300'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-800'
               }`}
               title="Velocidad y Dirección del Viento"
             >
@@ -646,8 +726,8 @@ export const CrisisRoomPage = () => {
               onClick={() => setWeatherMode('clouds')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 weatherMode === 'clouds'
-                  ? 'bg-indigo-500 text-white shadow-md ring-1 ring-indigo-300'
-                  : 'text-slate-300 hover:text-white hover:bg-crisis-800'
+                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-300'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-800'
               }`}
               title="Nubosidad Satelital"
             >
@@ -659,8 +739,8 @@ export const CrisisRoomPage = () => {
               onClick={() => setWeatherMode('storm')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 weatherMode === 'storm'
-                  ? 'bg-red-500 text-white shadow-md ring-1 ring-red-300'
-                  : 'text-slate-300 hover:text-white hover:bg-crisis-800'
+                  ? 'bg-red-600 text-white shadow-md ring-1 ring-red-300'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-800'
               }`}
               title="Alerta de Tormentas y Desborde de Cuencas"
             >
@@ -671,11 +751,11 @@ export const CrisisRoomPage = () => {
 
           {/* Selector de Mapa Base Ultra-Rápido */}
           <div className="flex items-center gap-2">
-            <div className="flex bg-crisis-900/90 p-0.5 rounded-xl border border-crisis-700/80 text-xs">
+            <div className="flex bg-slate-100 dark:bg-crisis-900/90 p-0.5 rounded-xl border border-slate-300 dark:border-crisis-700/80 text-xs">
               <button
                 onClick={() => setBaseMap('calles')}
                 className={`px-2.5 py-1 rounded-lg transition text-[11px] font-bold ${
-                  baseMap === 'calles' ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-300' : 'text-slate-400 hover:text-white'
+                  baseMap === 'calles' ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-300' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
                 }`}
                 title="Esri World Street Map: Libre de marcas de agua, alta definición y carga rápida"
               >
@@ -684,7 +764,7 @@ export const CrisisRoomPage = () => {
               <button
                 onClick={() => setBaseMap('sat')}
                 className={`px-2.5 py-1 rounded-lg transition text-[11px] font-bold ${
-                  baseMap === 'sat' ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-300' : 'text-slate-400 hover:text-white'
+                  baseMap === 'sat' ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-300' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
                 }`}
                 title="Imágenes Satelitales de Alta Resolución (Esri World Imagery)"
               >
@@ -693,7 +773,7 @@ export const CrisisRoomPage = () => {
               <button
                 onClick={() => setBaseMap('osm')}
                 className={`px-2.5 py-1 rounded-lg transition text-[11px] font-bold ${
-                  baseMap === 'osm' ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-300' : 'text-slate-400 hover:text-white'
+                  baseMap === 'osm' ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-300' : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
                 }`}
                 title="OpenStreetMap Mirror Comunitario"
               >
@@ -704,17 +784,19 @@ export const CrisisRoomPage = () => {
             <button
               onClick={() => fetchWeatherForCanton(activeCanton)}
               disabled={loadingWeather}
-              className="p-1.5 text-slate-300 hover:text-white bg-crisis-700 hover:bg-crisis-600 rounded-lg border border-crisis-600 transition"
+              className="p-1.5 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-crisis-700 dark:hover:bg-crisis-600 rounded-lg border border-slate-300 dark:border-crisis-600 transition"
               title="Refrescar telemetría del cantón activo"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingWeather ? 'animate-spin text-sky-400' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingWeather ? 'animate-spin text-sky-500 dark:text-sky-400' : ''}`} />
             </button>
 
             {/* Acciones de Creación (Exclusivo Administrador) */}
             {isAdmin && (
-              <div className="flex items-center gap-1.5 pl-2 border-l border-crisis-700">
+              <div className="flex items-center gap-1.5 pl-2 border-l border-slate-300 dark:border-crisis-700">
                 <button
                   onClick={() => {
+                    const centerLat = mapCenterCoords ? mapCenterCoords[0] : (activeCanton?.lat || ESMERALDAS_CENTER[0]);
+                    const centerLon = mapCenterCoords ? mapCenterCoords[1] : (activeCanton?.lon || ESMERALDAS_CENTER[1]);
                     setInfraForm({
                       nombre: '',
                       tipo: 'HOSPITAL',
@@ -722,8 +804,8 @@ export const CrisisRoomPage = () => {
                       telefono_contacto: '062723000',
                       contacto_responsable: 'Dr. Roberto Estupiñán',
                       capacidad_atencion: 120,
-                      lat: Number(mapCenter[0].toFixed(5)),
-                      lon: Number(mapCenter[1].toFixed(5)),
+                      lat: Number(centerLat.toFixed(5)),
+                      lon: Number(centerLon.toFixed(5)),
                     });
                     setShowCreateInfraModal(true);
                   }}
@@ -736,6 +818,8 @@ export const CrisisRoomPage = () => {
 
                 <button
                   onClick={() => {
+                    const centerLat = mapCenterCoords ? mapCenterCoords[0] : (activeCanton?.lat || ESMERALDAS_CENTER[0]);
+                    const centerLon = mapCenterCoords ? mapCenterCoords[1] : (activeCanton?.lon || ESMERALDAS_CENTER[1]);
                     setInfraForm({
                       nombre: '',
                       tipo: 'BOMBEROS',
@@ -743,8 +827,8 @@ export const CrisisRoomPage = () => {
                       telefono_contacto: '062720102',
                       contacto_responsable: 'Cmdte. Miguel Perea',
                       capacidad_atencion: 45,
-                      lat: Number(mapCenter[0].toFixed(5)),
-                      lon: Number(mapCenter[1].toFixed(5)),
+                      lat: Number(centerLat.toFixed(5)),
+                      lon: Number(centerLon.toFixed(5)),
                     });
                     setShowCreateInfraModal(true);
                   }}
@@ -886,7 +970,7 @@ export const CrisisRoomPage = () => {
             )}
 
             {/* 5. ALBERGUES TEMPORALES Y ZONAS DE EVACUACIÓN / REFUGIO (ARRASTRABLES EN MODO ADMIN) */}
-            {layers.albergues && albergues?.features?.map((feature, i) => {
+            {layers.albergues && shelterFeatures.map((feature, i) => {
               const rawCoords = feature.geometry?.coordinates;
               if (!rawCoords) return null;
               const coords = Array.isArray(rawCoords)
@@ -910,33 +994,33 @@ export const CrisisRoomPage = () => {
                   }}
                 >
                   <Popup>
-                    <div className="text-xs space-y-2 min-w-[220px] p-1">
+                    <div className="text-xs space-y-2 min-w-[220px] p-1 text-slate-800 dark:text-slate-200">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase tracking-wider text-[10px]">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider text-[10px]">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span>
                           <span>Albergue y Refugio Seguro</span>
                         </div>
                         {isAdmin && (
-                          <span className="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/40 px-1.5 py-0.5 rounded font-extrabold">
+                          <span className="text-[9px] bg-sky-100 text-sky-800 border border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/40 px-1.5 py-0.5 rounded font-extrabold">
                             ADMIN (Arrastrable)
                           </span>
                         )}
                       </div>
                       <div>
-                        <p className="font-extrabold text-white text-sm">{p.nombre}</p>
-                        <p className="text-slate-300 text-[11px] mt-0.5">{p.direccion || 'Cantón Esmeraldas'}</p>
-                        <p className="text-slate-400 font-mono text-[10px] mt-0.5">
+                        <p className="font-extrabold text-slate-900 dark:text-white text-sm">{p.nombre}</p>
+                        <p className="text-slate-600 dark:text-slate-300 text-[11px] mt-0.5">{p.direccion || 'Cantón Esmeraldas'}</p>
+                        <p className="text-slate-500 dark:text-slate-400 font-mono text-[10px] mt-0.5">
                           GPS: {coords[1].toFixed(5)}, {coords[0].toFixed(5)}
                         </p>
                       </div>
-                      <div className="pt-1.5 border-t border-slate-700/60">
-                        <div className="flex justify-between text-[11px] mb-1 text-slate-200">
+                      <div className="pt-1.5 border-t border-slate-200 dark:border-slate-700/60">
+                        <div className="flex justify-between text-[11px] mb-1 text-slate-700 dark:text-slate-200">
                           <span>Ocupación: <strong>{p.ocupacion_actual}</strong> / {p.capacidad_maxima}</span>
-                          <span className={`font-bold ${pct >= 90 ? 'text-red-400' : pct >= 70 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                          <span className={`font-bold ${pct >= 90 ? 'text-red-500' : pct >= 70 ? 'text-amber-500' : 'text-emerald-500'}`}>
                             {pct}%
                           </span>
                         </div>
-                        <div className="w-full bg-slate-700/80 h-2 rounded-full overflow-hidden">
+                        <div className="w-full bg-slate-200 dark:bg-slate-700/80 h-2 rounded-full overflow-hidden">
                           <div 
                             className={`h-full transition-all duration-300 ${
                               pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500'
@@ -944,12 +1028,12 @@ export const CrisisRoomPage = () => {
                             style={{ width: `${Math.min(pct, 100)}%` }}
                           ></div>
                         </div>
-                        <p className="text-[10px] text-slate-400 mt-1.5">
-                          Cupos disponibles: <strong className="text-emerald-400">{Math.max(0, p.capacidad_maxima - p.ocupacion_actual)} personas</strong>
+                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-1.5">
+                          Cupos disponibles: <strong className="text-emerald-600 dark:text-emerald-400">{Math.max(0, p.capacidad_maxima - p.ocupacion_actual)} personas</strong>
                         </p>
                       </div>
                       {isAdmin && (
-                        <div className="pt-1.5 border-t border-slate-700/60 text-[10px] text-sky-300 flex items-center gap-1 font-semibold">
+                        <div className="pt-1.5 border-t border-slate-200 dark:border-slate-700/60 text-[10px] text-sky-700 dark:text-sky-300 flex items-center gap-1 font-semibold">
                           <span>✋ Arrastra este albergue en el mapa para corregir su posición en tierra firme.</span>
                         </div>
                       )}
@@ -960,7 +1044,7 @@ export const CrisisRoomPage = () => {
             })}
 
             {/* 6. INFRAESTRUCTURAS ESENCIALES (HOSPITALES, BOMBEROS) */}
-            {layers.infraestructuras && infraestructuras?.features?.map((feature, i) => {
+            {layers.infraestructuras && infraFeatures.map((feature, i) => {
               const rawCoords = feature.geometry?.coordinates;
               if (!rawCoords) return null;
               const coords = Array.isArray(rawCoords)
@@ -984,35 +1068,35 @@ export const CrisisRoomPage = () => {
                   }}
                 >
                   <Popup>
-                    <div className="text-xs space-y-1.5 min-w-[200px] p-1">
-                      <div className="flex items-center justify-between border-b border-slate-700/80 pb-1">
-                        <span className="text-sky-400 font-bold uppercase tracking-wider text-[10px]">
+                    <div className="text-xs space-y-1.5 min-w-[200px] p-1 text-slate-800 dark:text-slate-200">
+                      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-1">
+                        <span className="text-sky-600 dark:text-sky-400 font-bold uppercase tracking-wider text-[10px]">
                           {p.tipo || 'HOSPITAL'}
                         </span>
                         {isAdmin && (
-                          <span className="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/40 px-1.5 py-0.5 rounded font-extrabold">
+                          <span className="text-[9px] bg-sky-100 text-sky-800 border border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/40 px-1.5 py-0.5 rounded font-extrabold">
                             ADMIN (Arrastrable)
                           </span>
                         )}
                       </div>
-                      <p className="font-bold text-white text-sm">{p.nombre}</p>
-                      <p className="text-slate-300 text-[11px]">{p.direccion || 'Esmeraldas'}</p>
-                      <p className="text-slate-400 font-mono text-[10px]">
+                      <p className="font-bold text-slate-900 dark:text-white text-sm">{p.nombre}</p>
+                      <p className="text-slate-600 dark:text-slate-300 text-[11px]">{p.direccion || 'Esmeraldas'}</p>
+                      <p className="text-slate-500 dark:text-slate-400 font-mono text-[10px]">
                         GPS: {coords[1].toFixed(5)}, {coords[0].toFixed(5)}
                       </p>
                       {p.telefono_contacto && (
-                        <p className="text-slate-400 text-[10px] pt-1">
-                          Contacto: <span className="text-sky-300 font-medium">{p.telefono_contacto}</span>
+                        <p className="text-slate-600 dark:text-slate-400 text-[10px] pt-1">
+                          Contacto: <span className="text-sky-700 dark:text-sky-300 font-medium">{p.telefono_contacto}</span>
                         </p>
                       )}
                       {isAdmin && (
-                        <div className="pt-2 border-t border-slate-700/60 space-y-1.5">
-                          <div className="text-[10px] text-sky-300 flex items-center gap-1 font-semibold">
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/60 space-y-1.5">
+                          <div className="text-[10px] text-sky-700 dark:text-sky-300 flex items-center gap-1 font-semibold">
                             <span>✋ Arrastra este icono en el mapa para corregir su posición en tierra firme.</span>
                           </div>
                           <button
                             onClick={() => handleDeleteInfraestructura(infraId, p.nombre)}
-                            className="w-full py-1 bg-red-600/80 hover:bg-red-500 text-white rounded text-[10px] font-bold flex items-center justify-center gap-1 transition"
+                            className="w-full py-1 bg-red-600 hover:bg-red-500 text-white rounded text-[10px] font-bold flex items-center justify-center gap-1 transition shadow-sm"
                           >
                             <Trash2 className="w-3 h-3" />
                             <span>Eliminar de Base de Datos</span>
@@ -1042,41 +1126,41 @@ export const CrisisRoomPage = () => {
           {/* ========================================================================= */}
           <div className="absolute bottom-2 left-2 right-2 lg:right-52 z-[1000] flex flex-col gap-1.5 pointer-events-none">
             
-            <div className="pointer-events-auto bg-crisis-800/95 backdrop-blur-md border border-crisis-700/80 rounded-2xl p-2.5 shadow-2xl space-y-2">
+            <div className="pointer-events-auto bg-white/95 dark:bg-crisis-800/95 backdrop-blur-md border border-slate-200 dark:border-crisis-700/80 rounded-2xl p-2.5 shadow-2xl space-y-2">
               
               {/* FILA 1: CANTÓN ACTIVO, CHIPS SELECTORES Y BADGES DE TELEMETRÍA */}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 
                 {/* Cantón Activo */}
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/25 flex items-center justify-center shrink-0 shadow-inner">
-                    <WeatherIcon condition={clima?.condicion} className="w-5 h-5 text-sky-400" />
+                  <div className="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-500/15 border border-sky-300 dark:border-sky-500/25 flex items-center justify-center shrink-0 shadow-inner">
+                    <WeatherIcon condition={clima?.condicion} className="w-5 h-5 text-sky-600 dark:text-sky-400" />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <h3 className="font-bold text-white text-xs tracking-wide">
+                      <h3 className="font-bold text-slate-900 dark:text-white text-xs tracking-wide">
                         {clima?.lugar || activeCanton.nombre}
                       </h3>
-                      <span className="flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                      <span className="flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping"></span>
                         En Vivo
                       </span>
                       {isAdmin && (
-                        <span className="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/40 px-1.5 py-0.2 rounded font-extrabold hidden sm:inline">
+                        <span className="text-[9px] bg-sky-100 text-sky-800 border border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/40 px-1.5 py-0.2 rounded font-extrabold hidden sm:inline">
                           ADMIN (Arrastra Albergues)
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-slate-300 flex items-center gap-1.5">
+                    <p className="text-[10px] text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                       <span className="capitalize">{currentHourlyPoint.condicion || clima?.condicion || 'Monitoreo activo'}</span>
                       <span>•</span>
-                      <span>Sensación: <strong className="text-white">{(Number(currentHourlyPoint.temp) + 2.5).toFixed(1)}°C</strong></span>
+                      <span>Sensación: <strong className="text-slate-900 dark:text-white">{(Number(currentHourlyPoint.temp) + 2.5).toFixed(1)}°C</strong></span>
                     </p>
                   </div>
                 </div>
 
                 {/* Chips de Selección Rápida de Cantones */}
-                <div className="flex items-center gap-1 overflow-x-auto py-0.5 px-1 bg-crisis-900/80 rounded-lg border border-crisis-700/70">
+                <div className="flex items-center gap-1 overflow-x-auto py-0.5 px-1 bg-slate-100 dark:bg-crisis-900/80 rounded-lg border border-slate-200 dark:border-crisis-700/70">
                   {CANTONES.map((c) => (
                     <button
                       key={c.id}
@@ -1084,7 +1168,7 @@ export const CrisisRoomPage = () => {
                       className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition whitespace-nowrap ${
                         activeCanton.id === c.id
                           ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-300'
-                          : 'text-slate-300 hover:text-white hover:bg-crisis-700/70'
+                          : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-700/70'
                       }`}
                     >
                       {c.shortName}
@@ -1097,12 +1181,12 @@ export const CrisisRoomPage = () => {
                   {/* Temp */}
                   <div className={`px-2 py-1 rounded-lg border transition ${
                     weatherMode === 'temp'
-                      ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 shadow-md ring-1 ring-amber-400/40'
-                      : 'bg-crisis-900/80 border-crisis-700 text-slate-300'
+                      ? 'bg-amber-100 text-amber-900 border-amber-400 dark:bg-amber-500/20 dark:border-amber-500/60 dark:text-amber-300 shadow-md ring-1 ring-amber-400/40'
+                      : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-crisis-900/80 dark:border-crisis-700 dark:text-slate-300'
                   }`}>
                     <div className="flex items-center gap-1">
-                      <Thermometer className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="text-[10px] text-slate-400">Temp</span>
+                      <Thermometer className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">Temp</span>
                       <strong className="text-xs font-mono">{Number(currentHourlyPoint.temp).toFixed(1)}°C</strong>
                     </div>
                   </div>
@@ -1110,12 +1194,12 @@ export const CrisisRoomPage = () => {
                   {/* Lluvia */}
                   <div className={`px-2 py-1 rounded-lg border transition ${
                     weatherMode === 'rain'
-                      ? 'bg-sky-500/20 border-sky-500/60 text-sky-300 shadow-md ring-1 ring-sky-400/40'
-                      : 'bg-crisis-900/80 border-crisis-700 text-slate-300'
+                      ? 'bg-sky-100 text-sky-900 border-sky-400 dark:bg-sky-500/20 dark:border-sky-500/60 dark:text-sky-300 shadow-md ring-1 ring-sky-400/40'
+                      : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-crisis-900/80 dark:border-crisis-700 dark:text-slate-300'
                   }`}>
                     <div className="flex items-center gap-1">
-                      <Droplets className="w-3.5 h-3.5 text-sky-400" />
-                      <span className="text-[10px] text-slate-400">Lluvia</span>
+                      <Droplets className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">Lluvia</span>
                       <strong className="text-xs font-mono">{Number(currentHourlyPoint.lluvia).toFixed(1)} mm</strong>
                     </div>
                   </div>
@@ -1123,12 +1207,12 @@ export const CrisisRoomPage = () => {
                   {/* Viento */}
                   <div className={`px-2 py-1 rounded-lg border transition ${
                     weatherMode === 'wind'
-                      ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300 shadow-md ring-1 ring-emerald-400/40'
-                      : 'bg-crisis-900/80 border-crisis-700 text-slate-300'
+                      ? 'bg-emerald-100 text-emerald-900 border-emerald-400 dark:bg-emerald-500/20 dark:border-emerald-500/60 dark:text-emerald-300 shadow-md ring-1 ring-emerald-400/40'
+                      : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-crisis-900/80 dark:border-crisis-700 dark:text-slate-300'
                   }`}>
                     <div className="flex items-center gap-1">
-                      <Wind className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-[10px] text-slate-400">Viento</span>
+                      <Wind className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">Viento</span>
                       <strong className="text-xs font-mono">{currentHourlyPoint.viento || clima?.velocidad_viento_kmh || 12} km/h</strong>
                     </div>
                   </div>
@@ -1136,12 +1220,12 @@ export const CrisisRoomPage = () => {
                   {/* Nubes */}
                   <div className={`px-2 py-1 rounded-lg border transition ${
                     weatherMode === 'clouds'
-                      ? 'bg-indigo-500/20 border-indigo-500/60 text-indigo-300 shadow-md ring-1 ring-indigo-400/40'
-                      : 'bg-crisis-900/80 border-crisis-700 text-slate-300'
+                      ? 'bg-indigo-100 text-indigo-900 border-indigo-400 dark:bg-indigo-500/20 dark:border-indigo-500/60 dark:text-indigo-300 shadow-md ring-1 ring-indigo-400/40'
+                      : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-crisis-900/80 dark:border-crisis-700 dark:text-slate-300'
                   }`}>
                     <div className="flex items-center gap-1">
-                      <Cloud className="w-3.5 h-3.5 text-indigo-400" />
-                      <span className="text-[10px] text-slate-400">Nubes</span>
+                      <Cloud className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">Nubes</span>
                       <strong className="text-xs">{clima?.nubosidad_porcentaje || 55}%</strong>
                     </div>
                   </div>
@@ -1149,13 +1233,13 @@ export const CrisisRoomPage = () => {
                   {/* Riesgo */}
                   <div className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${
                     currentHourlyPoint.lluvia > 15
-                      ? 'bg-red-500/20 border-red-500/40 text-red-300'
-                      : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                      ? 'bg-red-100 text-red-900 border-red-300 dark:bg-red-500/20 dark:border-red-500/40 dark:text-red-300'
+                      : 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-300'
                   }`}>
                     {currentHourlyPoint.lluvia > 15 ? (
-                      <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-500 dark:text-red-400 shrink-0" />
                     ) : (
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
                     )}
                     <span className="font-bold text-[11px]">
                       {currentHourlyPoint.lluvia > 15 ? 'Alerta Crecida' : 'Nivel Estable'}
@@ -1166,8 +1250,8 @@ export const CrisisRoomPage = () => {
               </div>
 
               {/* FILA 2: BARRA DE TIEMPO HORARIA INTERACTIVA (SLIDER MSN EL TIEMPO) */}
-              <div className="pt-1.5 border-t border-crisis-700/70 flex flex-col gap-1">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+              <div className="pt-1.5 border-t border-slate-200 dark:border-crisis-700/70 flex flex-col gap-1">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setIsPlaying(!isPlaying)}
@@ -1176,13 +1260,13 @@ export const CrisisRoomPage = () => {
                       {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
                       <span>{isPlaying ? 'Pausar' : 'Reproducir'}</span>
                     </button>
-                    <span className="text-white text-xs font-bold">
+                    <span className="text-slate-900 dark:text-white text-xs font-bold">
                       Previsión Horaria (24h)
                     </span>
                   </div>
 
-                  <div className="text-sky-400 font-mono text-xs">
-                    Hora: <strong className="text-white">{currentHourlyPoint.hora}</strong> • {Number(currentHourlyPoint.temp).toFixed(1)}°C • {Number(currentHourlyPoint.lluvia).toFixed(1)} mm lluvia
+                  <div className="text-sky-700 dark:text-sky-400 font-mono text-xs">
+                    Hora: <strong className="text-slate-900 dark:text-white">{currentHourlyPoint.hora}</strong> • {Number(currentHourlyPoint.temp).toFixed(1)}°C • {Number(currentHourlyPoint.lluvia).toFixed(1)} mm lluvia
                   </div>
                 </div>
 

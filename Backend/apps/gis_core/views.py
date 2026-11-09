@@ -15,6 +15,7 @@ class ZonasRiesgoGeoJSONAPIView(generics.ListAPIView):
     """
     serializer_class = ZonaRiesgoGeoSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class = None
 
     def get_queryset(self):
         qs = ZonaRiesgo.objects.filter(activo=True)
@@ -30,6 +31,7 @@ class CapasHidricasVialesGeoJSONAPIView(generics.ListAPIView):
     """
     serializer_class = CapaHidricaVialGeoSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class = None
 
     def get_queryset(self):
         qs = CapaHidricaVial.objects.all()
@@ -45,6 +47,7 @@ class InfraestructurasGeoJSONAPIView(generics.ListCreateAPIView):
     """
     serializer_class = InfraestructuraEsencialGeoSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class = None
 
     def get_queryset(self):
         qs = InfraestructuraEsencial.objects.filter(activo=True).order_by('id')
@@ -58,14 +61,25 @@ class InfraestructurasGeoJSONAPIView(generics.ListCreateAPIView):
         lat = data.get('lat')
         lon = data.get('lon') or data.get('lng')
 
-        nombre = data.get('nombre', 'Nueva Infraestructura')
-        tipo = data.get('tipo', 'HOSPITAL').upper()
+        nombre = (data.get('nombre') or 'Nueva Infraestructura').strip()
+        tipo = (data.get('tipo') or 'HOSPITAL').upper()
         direccion = data.get('direccion', 'Esmeraldas')
         telefono = data.get('telefono_contacto', '')
         contacto = data.get('contacto_responsable', '')
         capacidad = data.get('capacidad_atencion', 100)
 
-        ubicacion = Point(float(lon), float(lat), srid=4326) if (lat and lon) else Point(-79.6582, 0.9681, srid=4326)
+        try:
+            if lat is not None and lon is not None and str(lat).strip() != '' and str(lon).strip() != '':
+                ubicacion = Point(float(lon), float(lat), srid=4326)
+            else:
+                ubicacion = Point(-79.6582, 0.9681, srid=4326)
+        except (ValueError, TypeError):
+            ubicacion = Point(-79.6582, 0.9681, srid=4326)
+
+        try:
+            cap_val = int(capacidad) if (capacidad is not None and str(capacidad).strip() != '') else 100
+        except (ValueError, TypeError):
+            cap_val = 100
 
         infra = InfraestructuraEsencial.objects.create(
             nombre=nombre,
@@ -73,14 +87,15 @@ class InfraestructurasGeoJSONAPIView(generics.ListCreateAPIView):
             direccion=direccion,
             telefono_contacto=telefono,
             contacto_responsable=contacto,
-            capacidad_atencion=int(capacidad) if capacidad else None,
+            capacidad_atencion=cap_val,
             ubicacion=ubicacion,
             activo=True
         )
         serializer = self.get_serializer(infra)
         return Response({
-            'mensaje': f'Infraestructura "{infra.nombre}" registrada exitosamente.',
-            'infraestructura': serializer.data
+            'mensaje': f'Infraestructura "{infra.nombre}" registrada exitosamente en Aiven.',
+            'infraestructura': serializer.data,
+            'id': infra.id
         }, status=status.HTTP_201_CREATED)
 
 class InfraestructuraDetailUpdateDeleteAPIView(generics.RetrieveUpdateDestroyAPIView):

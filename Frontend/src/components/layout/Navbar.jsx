@@ -11,20 +11,20 @@ export const Navbar = () => {
   const { theme, toggleTheme, isLight } = useTheme();
 
   return (
-    <header className="bg-crisis-800 border-b border-crisis-700 px-4 py-3 flex items-center justify-between shadow-md">
+    <header className="bg-white dark:bg-crisis-800 border-b border-slate-200 dark:border-crisis-700 px-4 py-3 flex items-center justify-between shadow-sm">
       {/* Brand & Título */}
       <div className="flex items-center space-x-3">
         <div className="bg-sky-500/10 p-2 rounded-lg border border-sky-500/30">
-          <Shield className="w-6 h-6 text-sky-400" />
+          <Shield className="w-6 h-6 text-sky-500 dark:text-sky-400" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-white tracking-wide flex items-center gap-2">
+          <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
             ESMERALDAS RESILIENTE
-            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-500/30">
               6B • COE
             </span>
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             Sistema Integral de Gestión de Riesgos, Clima y Asistencia
           </p>
         </div>
@@ -37,18 +37,18 @@ export const Navbar = () => {
           {/* Selector de Tema Claro / Oscuro */}
           <button
             onClick={toggleTheme}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-700/60 hover:bg-slate-700 text-slate-200 border border-slate-600 font-medium transition active:scale-95 shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 dark:bg-slate-700/70 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-600 font-semibold transition active:scale-95 shadow-sm"
             title={isLight ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
           >
             {isLight ? (
               <>
                 <Sun className="w-3.5 h-3.5 text-amber-500" />
-                <span className="text-[11px] font-bold">Modo Claro</span>
+                <span className="text-[11px] font-bold text-slate-800">Modo Claro</span>
               </>
             ) : (
               <>
                 <Moon className="w-3.5 h-3.5 text-sky-300" />
-                <span className="text-[11px] font-bold">Modo Oscuro</span>
+                <span className="text-[11px] font-bold text-slate-200">Modo Oscuro</span>
               </>
             )}
           </button>
