@@ -62,11 +62,16 @@ export const Sidebar = () => {
                     <Icon className="w-4 h-4 shrink-0" />
                     <span>{item.label}</span>
                   </div>
-                  {item.badge && (
+                  {item.badge === 'En Vivo' ? (
+                    <span className="relative flex h-2.5 w-2.5 items-center justify-center mr-1" title="Sistema Activo en Tiempo Real">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-sm shadow-emerald-400"></span>
+                    </span>
+                  ) : item.badge ? (
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-crisis-700 text-slate-300 border border-slate-600">
                       {item.badge}
                     </span>
-                  )}
+                  ) : null}
                 </NavLink>
               );
             })}

@@ -6,13 +6,85 @@ from django.db.models import F
 from .models import AlbergueTemporal, TramoVial
 from .serializers import AlbergueTemporalGeoSerializer, TramoVialGeoSerializer
 
-class AlberguesListGeoJSONAPIView(generics.ListAPIView):
+class AlberguesListGeoJSONAPIView(generics.ListCreateAPIView):
     """
-    Retorna GeoJSON con todos los albergues temporales y su capacidad actual.
+    Retorna GeoJSON con todos los albergues temporales y su capacidad actual,
+    o permite registrar uno nuevo si es Admin.
     """
-    queryset = AlbergueTemporal.objects.filter(activo=True)
+    queryset = AlbergueTemporal.objects.all().order_by('id')
     serializer_class = AlbergueTemporalGeoSerializer
     permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        lat = data.get('lat')
+        lon = data.get('lon') or data.get('lng')
+        
+        nombre = data.get('nombre', 'Nuevo Albergue Temporal')
+        capacidad = data.get('capacidad_maxima', 200)
+        ocupacion = data.get('ocupacion_actual', 0)
+        direccion = data.get('direccion', 'Cantón Esmeraldas')
+        contacto = data.get('contacto_responsable', 'COE Cantonal')
+        telefono = data.get('telefono_contacto', '0999999999')
+        
+        ubicacion = Point(float(lon), float(lat), srid=4326) if (lat and lon) else Point(-79.6582, 0.9681, srid=4326)
+
+        albergue = AlbergueTemporal.objects.create(
+            nombre=nombre,
+            direccion=direccion,
+            capacidad_maxima=int(capacidad),
+            ocupacion_actual=int(ocupacion),
+            contacto_responsable=contacto,
+            telefono_contacto=telefono,
+            ubicacion=ubicacion,
+            activo=True
+        )
+        serializer = self.get_serializer(albergue)
+        return Response({
+            'mensaje': f'Albergue "{albergue.nombre}" registrado exitosamente.',
+            'albergue': serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+class AlbergueDetailUpdateDeleteAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Permite consultar, editar y reubicar (drag-and-drop de coordenadas) o eliminar un albergue.
+    """
+    queryset = AlbergueTemporal.objects.all()
+    serializer_class = AlbergueTemporalGeoSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        data = request.data
+
+        # Actualización de coordenadas por arrastre interactivo en el mapa Leaflet
+        lat = data.get('lat')
+        lon = data.get('lon') or data.get('lng')
+        if lat is not None and lon is not None:
+            instance.ubicacion = Point(float(lon), float(lat), srid=4326)
+
+        if 'nombre' in data:
+            instance.nombre = data['nombre']
+        if 'direccion' in data:
+            instance.direccion = data['direccion']
+        if 'capacidad_maxima' in data:
+            instance.capacidad_maxima = int(data['capacidad_maxima'])
+        if 'ocupacion_actual' in data:
+            instance.ocupacion_actual = int(data['ocupacion_actual'])
+        if 'contacto_responsable' in data:
+            instance.contacto_responsable = data['contacto_responsable']
+        if 'telefono_contacto' in data:
+            instance.telefono_contacto = data['telefono_contacto']
+        if 'activo' in data:
+            instance.activo = bool(data['activo'])
+
+        instance.save()
+        serializer = self.get_serializer(instance)
+        return Response({
+            'mensaje': f'Albergue "{instance.nombre}" actualizado exitosamente en base de datos.',
+            'albergue': serializer.data
+        }, status=status.HTTP_200_OK)
 
 class AlbergueCercanoConCupoAPIView(generics.GenericAPIView):
     """

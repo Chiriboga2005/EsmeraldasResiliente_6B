@@ -29,7 +29,11 @@ import {
 import { gisApi } from '../../api/gisApi';
 import { weatherApi } from '../../api/weatherApi';
 import { evacuationApi } from '../../api/evacuationApi';
+import { useAuth } from '../../context/AuthContext';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary';
+
+// API Key oficial de CARTO para eliminar marcas de agua en teselas Voyager
+const CARTO_API_KEY = 'eyJhbGciOiJIUzI1NiJ9.eyJhIjoiYWNfZTViYzllYjYiLCJqdGkiOiIyNjk1OGQwYWE0ZDYwZTUyYmI5Nzk0MTFmOThlYjJjZiJ9.EGdBLX9QpAvUHvpBcjrHiFLLnOJ7k-DqSevIFT5bH_k';
 
 // Fix de íconos predeterminados de Leaflet en Vite/Webpack
 delete L.Icon.Default.prototype._getIconUrl;
@@ -54,20 +58,20 @@ const CANTONES = [
 ];
 
 // Ícono personalizado exclusivo para albergues temporales y zonas de refugio (Casa/Refugio con techo seguro y cupo)
-const createShelterMarker = (pct = 0, nombre = '') => {
+const createShelterMarker = (pct = 0, nombre = '', isAdmin = false) => {
   const bgColor = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#10b981';
   const ringColor = pct >= 90 ? '#991b1b' : pct >= 70 ? '#b45309' : '#047857';
   const badgeText = pct >= 90 ? 'LLENO' : `${pct}%`;
 
   return L.divIcon({
     html: `
-      <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));">
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: ${isAdmin ? 'grab' : 'pointer'}; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));">
         <!-- Badge de Refugio / Albergue -->
         <div style="
           width: 36px; 
           height: 36px; 
           background: ${bgColor}; 
-          border: 2.5px solid #ffffff; 
+          border: ${isAdmin ? '2.5px dashed #38bdf8' : '2.5px solid #ffffff'}; 
           border-radius: 10px; 
           display: flex; 
           align-items: center; 
@@ -249,6 +253,10 @@ const WeatherIcon = ({ condition = '', className = 'w-5 h-5' }) => {
 };
 
 export const CrisisRoomPage = () => {
+  const { user } = useAuth();
+  const isAdmin = Boolean(user && (user.rol === 'ADMINISTRADOR' || user.rol === 'OPERADOR_COE' || user.is_staff || user.is_superuser));
+  const [saveStatus, setSaveStatus] = useState(null);
+
   const [zonasRiesgo, setZonasRiesgo] = useState(null);
   const [redHidrica, setRedHidrica] = useState(null);
   const [infraestructuras, setInfraestructuras] = useState(null);
@@ -281,6 +289,51 @@ export const CrisisRoomPage = () => {
   // Línea de tiempo interactiva (MSN El Tiempo Timeline)
   const [timelineIndex, setTimelineIndex] = useState(11);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Manejador de arrastre de albergues para reubicación interactiva en tierra firme (Modo Admin)
+  const handleShelterDragEnd = (albergueId, albergueNombre) => async (e) => {
+    const marker = e.target;
+    const newPos = marker.getLatLng();
+    const newLat = Number(newPos.lat.toFixed(5));
+    const newLon = Number(newPos.lng.toFixed(5));
+
+    // Actualización visual inmediata en estado local GeoJSON
+    setAlbergues((prev) => {
+      if (!prev || !prev.features) return prev;
+      return {
+        ...prev,
+        features: prev.features.map((f) => {
+          const fid = f.id || f.properties?.id;
+          if (fid === albergueId) {
+            return {
+              ...f,
+              geometry: {
+                ...f.geometry,
+                coordinates: [newLon, newLat],
+              },
+            };
+          }
+          return f;
+        }),
+      };
+    });
+
+    try {
+      await evacuationApi.updateAlbergue(albergueId, { lat: newLat, lon: newLon });
+      setSaveStatus({
+        type: 'success',
+        text: `✅ Albergue "${albergueNombre}" reubicado exitosamente a [${newLat}, ${newLon}] en la base de datos PostGIS.`,
+      });
+      setTimeout(() => setSaveStatus(null), 6000);
+    } catch (err) {
+      console.error('Error al guardar albergue:', err);
+      setSaveStatus({
+        type: 'error',
+        text: `⚠️ No se pudo guardar la ubicación en la base de datos.`,
+      });
+      setTimeout(() => setSaveStatus(null), 6000);
+    }
+  };
 
   // Carga de clima según cantón
   const fetchWeatherForCanton = useCallback(async (cantonObj) => {
@@ -545,7 +598,7 @@ export const CrisisRoomPage = () => {
             {baseMap === 'carto' && (
               <TileLayer
                 attribution='&copy; <a href="https://carto.com/">CARTO</a>, &copy; OpenStreetMap'
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                url={`https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`}
                 subdomains={['a', 'b', 'c', 'd']}
                 maxZoom={19}
                 keepBuffer={12}
@@ -647,27 +700,49 @@ export const CrisisRoomPage = () => {
               />
             )}
 
-            {/* 5. ALBERGUES TEMPORALES Y ZONAS DE EVACUACIÓN / REFUGIO */}
+            {/* 5. ALBERGUES TEMPORALES Y ZONAS DE EVACUACIÓN / REFUGIO (ARRASTRABLES EN MODO ADMIN) */}
             {layers.albergues && albergues?.features?.map((feature, i) => {
-              const coords = feature.geometry?.coordinates;
-              if (!coords) return null;
-              const p = feature.properties;
+              const rawCoords = feature.geometry?.coordinates;
+              if (!rawCoords) return null;
+              const coords = Array.isArray(rawCoords)
+                ? rawCoords
+                : typeof rawCoords === 'string'
+                  ? rawCoords.trim().split(/\s+/).map(Number)
+                  : null;
+              if (!coords || isNaN(coords[0]) || isNaN(coords[1])) return null;
+
+              const p = feature.properties || {};
+              const albId = feature.id || p.id || (i + 1);
               const pct = Math.round((p.ocupacion_actual / (p.capacidad_maxima || 1)) * 100);
               return (
                 <Marker 
-                  key={`alb-${i}`} 
+                  key={`alb-${albId}`} 
                   position={[coords[1], coords[0]]} 
-                  icon={createShelterMarker(pct, p.nombre)}
+                  icon={createShelterMarker(pct, p.nombre, isAdmin)}
+                  draggable={isAdmin}
+                  eventHandlers={{
+                    dragend: handleShelterDragEnd(albId, p.nombre),
+                  }}
                 >
                   <Popup>
-                    <div className="text-xs space-y-2 min-w-[210px] p-1">
-                      <div className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase tracking-wider text-[10px]">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span>Albergue y Refugio Seguro</span>
+                    <div className="text-xs space-y-2 min-w-[220px] p-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase tracking-wider text-[10px]">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                          <span>Albergue y Refugio Seguro</span>
+                        </div>
+                        {isAdmin && (
+                          <span className="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/40 px-1.5 py-0.5 rounded font-extrabold">
+                            ADMIN (Arrastrable)
+                          </span>
+                        )}
                       </div>
                       <div>
                         <p className="font-extrabold text-white text-sm">{p.nombre}</p>
                         <p className="text-slate-300 text-[11px] mt-0.5">{p.direccion || 'Cantón Esmeraldas'}</p>
+                        <p className="text-slate-400 font-mono text-[10px] mt-0.5">
+                          GPS: {coords[1].toFixed(5)}, {coords[0].toFixed(5)}
+                        </p>
                       </div>
                       <div className="pt-1.5 border-t border-slate-700/60">
                         <div className="flex justify-between text-[11px] mb-1 text-slate-200">
@@ -688,6 +763,11 @@ export const CrisisRoomPage = () => {
                           Cupos disponibles: <strong className="text-emerald-400">{Math.max(0, p.capacidad_maxima - p.ocupacion_actual)} personas</strong>
                         </p>
                       </div>
+                      {isAdmin && (
+                        <div className="pt-1.5 border-t border-slate-700/60 text-[10px] text-sky-300 flex items-center gap-1 font-semibold">
+                          <span>✋ Arrastra este albergue en el mapa para corregir su posición en tierra firme.</span>
+                        </div>
+                      )}
                     </div>
                   </Popup>
                 </Marker>
@@ -696,8 +776,15 @@ export const CrisisRoomPage = () => {
 
             {/* 6. INFRAESTRUCTURAS ESENCIALES (HOSPITALES, BOMBEROS) */}
             {layers.infraestructuras && infraestructuras?.features?.map((feature, i) => {
-              const coords = feature.geometry?.coordinates;
-              if (!coords) return null;
+              const rawCoords = feature.geometry?.coordinates;
+              if (!rawCoords) return null;
+              const coords = Array.isArray(rawCoords)
+                ? rawCoords
+                : typeof rawCoords === 'string'
+                  ? rawCoords.trim().split(/\s+/).map(Number)
+                  : null;
+              if (!coords || isNaN(coords[0]) || isNaN(coords[1])) return null;
+
               const p = feature.properties;
               return (
                 <Marker 
@@ -724,56 +811,62 @@ export const CrisisRoomPage = () => {
             })}
           </MapContainer>
 
+          {/* TOAST DE REUBICACIÓN EN BASE DE DATOS */}
+          {saveStatus && (
+            <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-[1200] px-4 py-2.5 rounded-xl text-xs font-bold shadow-2xl backdrop-blur-md border animate-in fade-in slide-in-from-top-4 duration-300 flex items-center gap-2 ${
+              saveStatus.type === 'success'
+                ? 'bg-emerald-950/95 border-emerald-500/60 text-emerald-200 ring-2 ring-emerald-500/30'
+                : 'bg-red-950/95 border-red-500/60 text-red-200'
+            }`}>
+              <span>{saveStatus.text}</span>
+            </div>
+          )}
+
           {/* ========================================================================= */}
-          {/* CONTENEDOR INFERIOR COMBINADO:                                            */}
-          {/* 1) WIDGET DE TELEMETRÍA DINÁMICO (ARRIBA DE LA BARRA DE TIEMPO)            */}
-          {/* 2) BARRA DE PREVISIÓN HORARIA (TIMELINE SLIDER MSN)                        */}
+          {/* CONSOLA INFERIOR UNIFICADA: TELEMETRÍA DINÁMICA & TIMELINE MSN EL TIEMPO */}
           {/* ========================================================================= */}
-          <div className="absolute bottom-3 left-3 right-3 z-[1000] flex flex-col gap-2.5 pointer-events-none">
+          <div className="absolute bottom-2 left-2 right-2 lg:right-52 z-[1000] flex flex-col gap-1.5 pointer-events-none">
             
-            {/* WIDGET METEOROLÓGICO ACTIVO: SE ACTUALIZA AL MOVER EL MAPA O SELECCIONAR QUININDÉ */}
-            <div className="pointer-events-auto bg-crisis-800/95 backdrop-blur-md border border-crisis-700/80 rounded-2xl p-3 shadow-2xl transition-all duration-300">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="pointer-events-auto bg-crisis-800/95 backdrop-blur-md border border-crisis-700/80 rounded-2xl p-2.5 shadow-2xl space-y-2">
+              
+              {/* FILA 1: CANTÓN ACTIVO, CHIPS SELECTORES Y BADGES DE TELEMETRÍA */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 
-                {/* A. Cantón Activo e Indicador de Autodetección */}
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center shrink-0 shadow-inner">
-                    <WeatherIcon condition={clima?.condicion} className="w-6 h-6 text-sky-400" />
+                {/* Cantón Activo */}
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/25 flex items-center justify-center shrink-0 shadow-inner">
+                    <WeatherIcon condition={clima?.condicion} className="w-5 h-5 text-sky-400" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-white text-sm tracking-wide">
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="font-bold text-white text-xs tracking-wide">
                         {clima?.lugar || activeCanton.nombre}
                       </h3>
-                      <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      <span className="flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                        Detector Automático
+                        En Vivo
                       </span>
-                      {lastAutoDetected && (
-                        <span className="text-[10px] text-sky-300 font-mono hidden md:inline">
-                          (Visor en: {lastAutoDetected})
+                      {isAdmin && (
+                        <span className="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/40 px-1.5 py-0.2 rounded font-extrabold hidden sm:inline">
+                          ADMIN (Arrastra Albergues)
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-300 flex items-center gap-2 mt-0.5">
+                    <p className="text-[10px] text-slate-300 flex items-center gap-1.5">
                       <span className="capitalize">{clima?.condicion || 'Monitoreo activo'}</span>
                       <span>•</span>
                       <span>Sensación: <strong className="text-white">{clima?.sensacion_termica_c || 32}°C</strong></span>
-                      <span>•</span>
-                      <span className="text-slate-400 font-mono text-[10px]">
-                        {activeCanton.lat.toFixed(3)}°N, {Math.abs(activeCanton.lon).toFixed(3)}°W
-                      </span>
                     </p>
                   </div>
                 </div>
 
-                {/* B. Selector Rápido de Cantones (Chips interactivos con un clic) */}
-                <div className="flex items-center gap-1 overflow-x-auto py-1 px-1 bg-crisis-900/70 rounded-xl border border-crisis-700/70 max-w-full">
+                {/* Chips de Selección Rápida de Cantones */}
+                <div className="flex items-center gap-1 overflow-x-auto py-0.5 px-1 bg-crisis-900/80 rounded-lg border border-crisis-700/70">
                   {CANTONES.map((c) => (
                     <button
                       key={c.id}
                       onClick={() => handleSelectCanton(c)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition whitespace-nowrap ${
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition whitespace-nowrap ${
                         activeCanton.id === c.id
                           ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-300'
                           : 'text-slate-300 hover:text-white hover:bg-crisis-700/70'
@@ -784,143 +877,139 @@ export const CrisisRoomPage = () => {
                   ))}
                 </div>
 
-                {/* C. Métricas en Tiempo Real (Resaltando el modo meteorológico seleccionado) */}
-                <div className="flex items-center gap-2 text-xs">
-                  {/* Temperatura */}
-                  <div className={`px-2.5 py-1.5 rounded-xl border transition ${
+                {/* Métricas en Tiempo Real (Resaltando el modo meteorológico seleccionado) */}
+                <div className="flex items-center gap-1.5 text-xs">
+                  {/* Temp */}
+                  <div className={`px-2 py-1 rounded-lg border transition ${
                     weatherMode === 'temp'
                       ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 shadow-md ring-1 ring-amber-400/40'
                       : 'bg-crisis-900/80 border-crisis-700 text-slate-300'
                   }`}>
-                    <div className="flex items-center gap-1.5">
-                      <Thermometer className="w-4 h-4 text-amber-400" />
-                      <div>
-                        <p className="text-[10px] text-slate-400 leading-none">Temp</p>
-                        <p className="font-bold text-sm leading-tight">{Math.round(currentHourlyPoint.temp)}°C</p>
-                      </div>
+                    <div className="flex items-center gap-1">
+                      <Thermometer className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="text-[10px] text-slate-400">Temp</span>
+                      <strong className="text-xs">{Math.round(currentHourlyPoint.temp)}°C</strong>
                     </div>
                   </div>
 
                   {/* Lluvia */}
-                  <div className={`px-2.5 py-1.5 rounded-xl border transition ${
+                  <div className={`px-2 py-1 rounded-lg border transition ${
                     weatherMode === 'rain'
                       ? 'bg-sky-500/20 border-sky-500/60 text-sky-300 shadow-md ring-1 ring-sky-400/40'
                       : 'bg-crisis-900/80 border-crisis-700 text-slate-300'
                   }`}>
-                    <div className="flex items-center gap-1.5">
-                      <Droplets className="w-4 h-4 text-sky-400" />
-                      <div>
-                        <p className="text-[10px] text-slate-400 leading-none">Lluvia</p>
-                        <p className="font-bold text-sm leading-tight">{currentHourlyPoint.lluvia} mm</p>
-                      </div>
+                    <div className="flex items-center gap-1">
+                      <Droplets className="w-3.5 h-3.5 text-sky-400" />
+                      <span className="text-[10px] text-slate-400">Lluvia</span>
+                      <strong className="text-xs">{currentHourlyPoint.lluvia} mm</strong>
                     </div>
                   </div>
 
                   {/* Viento */}
-                  <div className={`px-2.5 py-1.5 rounded-xl border transition ${
+                  <div className={`px-2 py-1 rounded-lg border transition ${
                     weatherMode === 'wind'
                       ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300 shadow-md ring-1 ring-emerald-400/40'
                       : 'bg-crisis-900/80 border-crisis-700 text-slate-300'
                   }`}>
-                    <div className="flex items-center gap-1.5">
-                      <Wind className="w-4 h-4 text-emerald-400" />
-                      <div>
-                        <p className="text-[10px] text-slate-400 leading-none">Viento</p>
-                        <p className="font-bold text-sm leading-tight">{clima?.velocidad_viento_kmh || 12} km/h</p>
-                      </div>
+                    <div className="flex items-center gap-1">
+                      <Wind className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-[10px] text-slate-400">Viento</span>
+                      <strong className="text-xs">{clima?.velocidad_viento_kmh || 12} km/h</strong>
                     </div>
                   </div>
 
-                  {/* Nubosidad */}
-                  <div className={`px-2.5 py-1.5 rounded-xl border transition ${
+                  {/* Nubes */}
+                  <div className={`px-2 py-1 rounded-lg border transition ${
                     weatherMode === 'clouds'
                       ? 'bg-indigo-500/20 border-indigo-500/60 text-indigo-300 shadow-md ring-1 ring-indigo-400/40'
                       : 'bg-crisis-900/80 border-crisis-700 text-slate-300'
                   }`}>
-                    <div className="flex items-center gap-1.5">
-                      <Cloud className="w-4 h-4 text-indigo-400" />
-                      <div>
-                        <p className="text-[10px] text-slate-400 leading-none">Nubes</p>
-                        <p className="font-bold text-sm leading-tight">{clima?.nubosidad_porcentaje || 55}%</p>
-                      </div>
+                    <div className="flex items-center gap-1">
+                      <Cloud className="w-3.5 h-3.5 text-indigo-400" />
+                      <span className="text-[10px] text-slate-400">Nubes</span>
+                      <strong className="text-xs">{clima?.nubosidad_porcentaje || 55}%</strong>
                     </div>
                   </div>
 
-                  {/* Estado Cuenca / Tormenta */}
-                  <div className={`px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5 ${
+                  {/* Riesgo */}
+                  <div className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${
                     currentHourlyPoint.lluvia > 15
                       ? 'bg-red-500/20 border-red-500/40 text-red-300'
                       : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
                   }`}>
                     {currentHourlyPoint.lluvia > 15 ? (
-                      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
                     ) : (
-                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     )}
-                    <div>
-                      <p className="text-[10px] text-slate-400 leading-none">Riesgo Río</p>
-                      <p className="font-bold text-xs leading-tight">
-                        {currentHourlyPoint.lluvia > 15 ? 'Alerta Crecida' : 'Nivel Estable'}
-                      </p>
-                    </div>
+                    <span className="font-bold text-[11px]">
+                      {currentHourlyPoint.lluvia > 15 ? 'Alerta Crecida' : 'Nivel Estable'}
+                    </span>
                   </div>
                 </div>
 
               </div>
-            </div>
 
-            {/* BARRA DE PREVISIÓN HORARIA INTERACTIVA (ESTILO TIMELINE MSN EL TIEMPO) */}
-            <div className="pointer-events-auto bg-crisis-800/95 backdrop-blur-md border border-crisis-700/80 rounded-xl p-3 shadow-2xl space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setIsPlaying(!isPlaying)}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold transition shadow-md"
-                  >
-                    {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                    <span>{isPlaying ? 'Pausar' : 'Reproducir'}</span>
-                  </button>
-                  <span className="text-white font-bold">
-                    Previsión Horaria para {clima?.lugar || activeCanton.nombre} (Hoy)
-                  </span>
+              {/* FILA 2: BARRA DE TIEMPO HORARIA INTERACTIVA (SLIDER MSN EL TIEMPO) */}
+              <div className="pt-1.5 border-t border-crisis-700/70 flex flex-col gap-1">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsPlaying(!isPlaying)}
+                      className="flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-bold text-[11px] transition shadow"
+                    >
+                      {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                      <span>{isPlaying ? 'Pausar' : 'Reproducir'}</span>
+                    </button>
+                    <span className="text-white text-xs font-bold">
+                      Previsión Horaria (24h)
+                    </span>
+                  </div>
+
+                  <div className="text-sky-400 font-mono text-xs">
+                    Hora: <strong className="text-white">{currentHourlyPoint.hora}</strong> • {currentHourlyPoint.temp}°C • {currentHourlyPoint.lluvia} mm lluvia
+                  </div>
                 </div>
 
-                <div className="text-sky-400 font-mono text-xs">
-                  Hora: <strong className="text-white">{currentHourlyPoint.hora}</strong> • {currentHourlyPoint.temp}°C • {currentHourlyPoint.lluvia} mm lluvia
-                </div>
-              </div>
-
-              {/* Slider de horas */}
-              {clima?.prevision_horaria && (
-                <div className="flex items-center gap-2 pt-1">
+                {/* Slider interactivo continuo */}
+                <div className="flex items-center gap-2 pt-0.5">
                   <input
                     type="range"
                     min="0"
-                    max={clima.prevision_horaria.length - 1}
+                    max={Math.max(1, (clima?.prevision_horaria?.length || 24) - 1)}
                     value={timelineIndex}
                     onChange={(e) => setTimelineIndex(parseInt(e.target.value))}
-                    className="w-full h-2 bg-crisis-700 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                    className="w-full h-2 bg-crisis-950 rounded-lg appearance-none cursor-pointer accent-sky-400 border border-slate-700"
                   />
                 </div>
-              )}
 
-              {/* Marcas de Tiempo Horarias (Cada 3 horas) */}
-              <div className="flex justify-between text-[10px] text-slate-400 font-mono px-1">
-                {clima?.prevision_horaria?.filter((_, idx) => idx % 3 === 0).map((h, i) => (
-                  <span
-                    key={i}
-                    onClick={() => {
-                      const originalIdx = clima.prevision_horaria.findIndex(p => p.hora === h.hora);
-                      if (originalIdx !== -1) setTimelineIndex(originalIdx);
-                    }}
-                    className={`cursor-pointer hover:text-white transition ${
-                      currentHourlyPoint.hora === h.hora ? 'text-sky-400 font-bold underline' : ''
-                    }`}
-                  >
-                    {h.hora}
-                  </span>
-                ))}
+                {/* Marcas horarias fijas (cada 3 horas) */}
+                <div className="flex justify-between text-[10px] text-slate-400 font-mono px-0.5">
+                  {(clima?.prevision_horaria?.length
+                    ? clima.prevision_horaria
+                    : Array.from({ length: 24 }, (_, i) => ({
+                        hora: `${String(i).padStart(2, '0')}:00`,
+                      }))
+                  )
+                    .filter((_, idx) => idx % 3 === 0)
+                    .map((h, i) => (
+                      <span
+                        key={i}
+                        onClick={() => {
+                          const hours = clima?.prevision_horaria || [];
+                          const originalIdx = hours.findIndex((p) => p.hora === h.hora);
+                          if (originalIdx !== -1) setTimelineIndex(originalIdx);
+                        }}
+                        className={`cursor-pointer hover:text-white transition font-medium ${
+                          currentHourlyPoint.hora === h.hora ? 'text-sky-400 font-bold underline' : ''
+                        }`}
+                      >
+                        {h.hora}
+                      </span>
+                    ))}
+                </div>
               </div>
+
             </div>
 
           </div>

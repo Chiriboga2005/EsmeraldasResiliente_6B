@@ -1,8 +1,25 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import Usuario
-from .serializers import RegistroCiudadanoSerializer, PerfilUsuarioSerializer
+from .serializers import (
+    RegistroCiudadanoSerializer, 
+    PerfilUsuarioSerializer,
+    CustomTokenObtainPairSerializer
+)
+
+class CustomTokenObtainPairView(generics.GenericAPIView):
+    """
+    Endpoint JWT de inicio de sesión compatible con 'admin', celular o email.
+    """
+    serializer_class = CustomTokenObtainPairSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 class RegistroCiudadanoAPIView(generics.CreateAPIView):
     """

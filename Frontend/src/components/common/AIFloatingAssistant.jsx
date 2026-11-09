@@ -129,18 +129,18 @@ export const AIFloatingAssistant = () => {
   return (
     <>
       {/* BOTÓN FLOTANTE TRIGGER (FIJO EN ESQUINA INFERIOR DERECHA) */}
-      <div className="fixed bottom-6 right-6 z-[1200] flex items-center gap-2">
+      <div className="fixed bottom-3 right-3 z-[1200] flex items-center gap-2">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="group relative flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 hover:from-sky-500 hover:to-purple-500 text-white font-bold rounded-full shadow-2xl shadow-indigo-500/40 border border-white/20 transition-all duration-300 transform hover:scale-105 active:scale-95"
+          className="group relative flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 hover:from-sky-500 hover:to-purple-500 text-white font-bold rounded-full shadow-2xl shadow-indigo-500/40 border border-white/20 transition-all duration-300 transform hover:scale-105 active:scale-95"
           title="Abrir Asistente de IA Predictiva COE"
         >
-          <span className="relative flex h-3 w-3">
+          <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
           </span>
 
-          <BrainCircuit className="w-5 h-5 text-sky-200 group-hover:rotate-12 transition-transform duration-300" />
+          <BrainCircuit className="w-4 h-4 text-sky-200 group-hover:rotate-12 transition-transform duration-300" />
           <span className="text-xs tracking-wide font-black uppercase">
             IA Predictiva COE
           </span>
@@ -149,7 +149,7 @@ export const AIFloatingAssistant = () => {
 
       {/* VENTANA MODAL / PANEL DE CONSULTAS DE IA */}
       {isOpen && (
-        <div className="fixed bottom-20 right-4 sm:right-6 z-[1200] w-[95vw] sm:w-[480px] max-h-[85vh] h-[640px] flex flex-col bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-16 right-3 sm:right-4 z-[1200] w-[95vw] sm:w-[480px] max-h-[85vh] h-[640px] flex flex-col bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
           
           {/* HEADER DEL ASISTENTE */}
           <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-slate-800 p-3.5 flex items-center justify-between">

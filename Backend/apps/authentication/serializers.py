@@ -1,6 +1,50 @@
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.db.models import Q
 from .models import Usuario, RolUsuario
+
+class CustomTokenObtainPairSerializer(serializers.Serializer):
+    """
+    Permite autenticarse usando 'username' (ej. admin), 'telefono' o 'email'.
+    """
+    username = serializers.CharField(required=False)
+    telefono = serializers.CharField(required=False)
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        login_input = attrs.get('username') or attrs.get('telefono')
+        password = attrs.get('password')
+        if not login_input:
+            raise serializers.ValidationError({'detail': 'Ingrese su nombre de usuario, teléfono o correo electrónico.'})
+
+        user = Usuario.objects.filter(
+            Q(username__iexact=login_input) |
+            Q(telefono=login_input) |
+            Q(email__iexact=login_input)
+        ).first()
+
+        if user and user.check_password(password):
+            if not user.is_active:
+                raise serializers.ValidationError({'detail': 'Este usuario ha sido desactivado por administración.'})
+            refresh = RefreshToken.for_user(user)
+            return {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'usuario': {
+                    'id': str(user.id),
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'nombre_completo': user.get_full_name() or user.username,
+                    'username': user.username,
+                    'telefono': user.telefono,
+                    'email': user.email,
+                    'rol': user.rol,
+                    'is_staff': user.is_staff,
+                    'is_superuser': user.is_superuser,
+                }
+            }
+        raise serializers.ValidationError({'detail': 'Credenciales no válidas. Verifique su usuario/teléfono y contraseña.'})
 
 class RegistroCiudadanoSerializer(serializers.ModelSerializer):
     """

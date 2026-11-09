@@ -41,7 +41,10 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('access_token', data.access);
     localStorage.setItem('refresh_token', data.refresh);
     setToken(data.access);
-    const perfil = await authApi.getPerfil();
+    let perfil = data.usuario || data.user;
+    if (!perfil) {
+      perfil = await authApi.getPerfil();
+    }
     setUser(perfil);
     localStorage.setItem('usuario', JSON.stringify(perfil));
     return perfil;
