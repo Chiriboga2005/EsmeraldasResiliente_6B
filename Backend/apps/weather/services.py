@@ -134,7 +134,7 @@ class OpenWeatherService:
                 f"&hourly=temperature_2m,precipitation,weather_code,wind_speed_10m"
                 f"&forecast_days=1&timezone=America%2FGuayaquil"
             )
-            res = requests.get(url, timeout=5)
+            res = requests.get(url, timeout=10)
             if res.status_code == 200:
                 data = res.json()
                 curr = data.get('current', {})
@@ -144,6 +144,25 @@ class OpenWeatherService:
                 desc, icon = cls._mapear_wmo_code(wcode)
                 lluvia_mm = curr.get('precipitation', 0.0)
                 alerta = cls.evaluar_umbral_alerta(lluvia_mm)
+
+                prevision = []
+                times = hourly.get('time', [])
+                temps = hourly.get('temperature_2m', [])
+                rains = hourly.get('precipitation', [])
+                codes = hourly.get('weather_code', [])
+                winds = hourly.get('wind_speed_10m', [])
+
+                for i in range(min(24, len(times))):
+                    c_code = codes[i] if i < len(codes) else 0
+                    c_desc, _ = cls._mapear_wmo_code(c_code)
+                    prevision.append({
+                        'hora': times[i][-5:],
+                        'temp': round(temps[i], 1) if i < len(temps) else 28.0,
+                        'lluvia': round(rains[i], 1) if i < len(rains) else 0.0,
+                        'viento': round(winds[i], 1) if i < len(winds) else 12.0,
+                        'codigo': c_code,
+                        'condicion': c_desc,
+                    })
 
                 return {
                     'lugar': lugar_nombre,
@@ -163,18 +182,10 @@ class OpenWeatherService:
                     'mensaje_alerta': alerta['mensaje'],
                     'es_simulacion': False,
                     'fuente': 'Open-Meteo & OpenWeatherMap Live',
-                    'prevision_horaria': [
-                        {
-                            'hora': hourly['time'][i][-5:],
-                            'temp': hourly['temperature_2m'][i],
-                            'lluvia': hourly['precipitation'][i],
-                            'codigo': hourly['weather_code'][i]
-                        }
-                        for i in range(min(24, len(hourly.get('time', []))))
-                    ]
+                    'prevision_horaria': prevision
                 }
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Error obteniendo Open-Meteo para {lugar_nombre}: {e}")
         return cls._obtener_mock_clima(lugar_nombre, lat, lon)
 
     @staticmethod
@@ -203,24 +214,59 @@ class OpenWeatherService:
     def _obtener_mock_clima(cls, lugar_nombre, lat, lon):
         """
         Datos de prueba representativos de Esmeraldas cuando la API Key no está definida.
+        Incluye previsión horaria completa (24 horas) para dinamismo interactivo.
         """
+        import math
+        prevision_mock = []
+        for h in range(24):
+            hora_str = f"{h:02d}:00"
+            # Curva diurna sinusoidal (mínima a las 5:00 ~24.8°C, máxima a las 14:00 ~31.8°C)
+            factor = math.sin(((h - 8) / 24.0) * 2.0 * math.pi)
+            temp_h = round(28.2 + factor * 3.6, 1)
+            # Lluvia vespertina típica en Esmeraldas (picos entre 13h y 17h)
+            if 13 <= h <= 17:
+                lluvia_h = round(abs(math.sin((h - 13) / 4.0 * math.pi)) * 18.4, 1)
+                cond_h = "Lluvia moderada a fuerte" if lluvia_h > 10 else "Chubasco disperso"
+                cod_h = 63 if lluvia_h > 10 else 61
+            elif 18 <= h <= 21:
+                lluvia_h = round(3.5 - (h - 18) * 0.8, 1)
+                cond_h = "Llovizna intermitente"
+                cod_h = 51
+            else:
+                lluvia_h = 0.0
+                cond_h = "Cielo despejado" if (6 <= h <= 12 or factor > 0.5) else "Parcialmente nublado"
+                cod_h = 1 if 6 <= h <= 12 else 2
+
+            viento_h = round(9.5 + abs(factor) * 7.5, 1)
+
+            prevision_mock.append({
+                'hora': hora_str,
+                'temp': temp_h,
+                'lluvia': lluvia_h,
+                'viento': viento_h,
+                'codigo': cod_h,
+                'condicion': cond_h
+            })
+
         return {
             'lugar': lugar_nombre,
             'coordenadas': {'lat': lat, 'lon': lon},
             'condicion': 'Lluvia moderada con intervalos nubosos',
             'icono': 'https://openweathermap.org/img/wn/10d@2x.png',
-            'temperatura_c': 27.5,
-            'sensacion_termica_c': 30.2,
-            'humedad_porcentaje': 84,
+            'temperatura_c': 28.5,
+            'sensacion_termica_c': 31.8,
+            'humedad_porcentaje': 82,
             'presion_hpa': 1011,
             'velocidad_viento_kmh': 14.2,
             'direccion_viento_grados': 230,
-            'precipitacion_1h_mm': 18.4,
-            'precipitacion_3h_mm': 32.1,
+            'precipitacion_1h_mm': 12.4,
+            'precipitacion_3h_mm': 26.1,
             'nivel_riesgo_hidrologico': 'MEDIO',
             'mensaje_alerta': 'ALERTA AMARILLA: Precipitaciones moderadas registradas en la cuenca de Esmeraldas.',
             'es_simulacion': True,
-            'aviso': 'Configure OPENWEATHERMAP_API_KEY en .env para lecturas en vivo.'
+            'fuente': 'Modelo Hidrometeorológico COE Esmeraldas',
+            'aviso': 'Configure OPENWEATHERMAP_API_KEY en .env para lecturas en vivo.',
+            'prevision_horaria': prevision_mock
         }
 
     @classmethod

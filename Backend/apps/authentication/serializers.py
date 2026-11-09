@@ -21,7 +21,8 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
         user = Usuario.objects.filter(
             Q(username__iexact=login_input) |
             Q(telefono=login_input) |
-            Q(email__iexact=login_input)
+            Q(email__iexact=login_input) |
+            Q(cedula=login_input)
         ).first()
 
         if user and user.check_password(password):
@@ -39,6 +40,7 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
                     'username': user.username,
                     'telefono': user.telefono,
                     'email': user.email,
+                    'cedula': user.cedula,
                     'rol': user.rol,
                     'is_staff': user.is_staff,
                     'is_superuser': user.is_superuser,
@@ -75,15 +77,26 @@ class RegistroCiudadanoSerializer(serializers.ModelSerializer):
 class PerfilUsuarioSerializer(GeoFeatureModelSerializer):
     """
     Paso 2: Perfil Completo del Ciudadano con Georreferenciación de Residencia.
+    Permite además modificar datos personales (correo, usuario, contraseña, teléfono y contacto de emergencia).
     """
+    password = serializers.CharField(write_only=True, required=False, min_length=6, allow_blank=True)
+
     class Meta:
         model = Usuario
         geo_field = 'ubicacion_domicilio'
         fields = [
-            'id', 'first_name', 'last_name', 'telefono', 'telefono_emergencia',
+            'id', 'username', 'first_name', 'last_name', 'telefono', 'telefono_emergencia',
             'email', 'cedula', 'rol', 'esta_verificado', 'canton', 'parroquia',
             'barrio_sector', 'direccion_domicilio', 'tiene_personas_vulnerables',
-            'numero_personas_hogar', 'fecha_registro'
+            'numero_personas_hogar', 'fecha_registro', 'password'
         ]
         read_only_fields = ['id', 'rol', 'esta_verificado', 'fecha_registro']
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        user = super().update(instance, validated_data)
+        if password and password.strip():
+            user.set_password(password.strip())
+            user.save()
+        return user
 
