@@ -31,8 +31,12 @@ export const AuthProvider = ({ children }) => {
       setUser(perfil);
       localStorage.setItem('usuario', JSON.stringify(perfil));
     } catch (err) {
-      console.warn('No se pudo cargar perfil:', err);
-      logout();
+      console.warn('No se pudo sincronizar perfil con backend:', err);
+      // No cerrar la sesión si ya tenemos el perfil autenticado en localStorage (ej. Keycloak OIDC)
+      const saved = localStorage.getItem('usuario');
+      if (!saved) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
