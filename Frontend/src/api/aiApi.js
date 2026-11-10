@@ -2,7 +2,7 @@ import apiClient from './client';
 
 export const aiApi = {
   consultar: async (pregunta) => {
-    const res = await apiClient.post('/ia/consultar/', { pregunta });
+    const res = await apiClient.post('/ia/consultar/', { pregunta }, { timeout: 60000 });
     return res.data;
   },
   getHistorial: async () => {

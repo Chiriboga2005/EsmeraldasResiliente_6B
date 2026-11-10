@@ -228,11 +228,54 @@ class AIAssistantService:
             )
 
         # -------------------------------------------------------------
-        # 5. INTENCIÓN: Simulación de Lluvias / Escenarios / Río Teaone
+        # 5. INTENCIÓN: Recurrencia / Zonas Críticas / Sectores Vulnerables (EVALUADA ANTES DE SIMULACIÓN)
         # -------------------------------------------------------------
         elif any(w in q for w in [
-            'simula', 'crecida', 'escenario', 'desborde', 'teaone', 'río', 'rio',
-            '120', 'caudal', 'inundación', 'inundacion', 'precipitación', 'precipitacion'
+            'recurrencia', 'recurrentes', 'recurrente', 'histórica', 'historica', 'histórico',
+            'historico', 'más afectados', 'mas afectados', 'frecuente', 'vulnerab', 'crítico',
+            'critico', 'peligros'
+        ]):
+            categoria = "RECURRENCIA"
+            sectores = rec.calcular_sectores_recurrentes()
+            top_rec = sectores[:4]
+            
+            datos_contexto = {
+                "tipo": "recurrencia",
+                "total_sectores": len(sectores),
+                "top_sectores": [
+                    {
+                        "sector": s['sector'],
+                        "indice": s['indice_recurrencia'],
+                        "distancia_cauce_m": s['distancia_cauce_m'],
+                        "nivel_riesgo": s['nivel_riesgo']
+                    }
+                    for s in top_rec
+                ]
+            }
+
+            detalles = "\n".join([
+                f"- **{s['sector']}** ({s.get('canton', 'Esmeraldas')}): Índice Recurrencia `{s['indice_recurrencia']}/100` [{s['nivel_riesgo']}]. "
+                f"Distancia a cauce: **{s['distancia_cauce_m']}m** • Familias afectadas históricamente: **{s['total_familias_afectadas']}**."
+                for s in top_rec
+            ])
+
+            respuesta = (
+                f"📍 **Análisis de Recurrencia Histórica de Inundaciones (2019-2026):**\n\n"
+                f"El análisis territorial multianual identifica los sectores con mayor susceptibilidad hidrometeorológica repetitiva en el cantón Esmeraldas:\n\n"
+                f"{detalles}\n\n"
+                f"🔍 **Factores Determinantes de Vulnerabilidad:**\n"
+                f"- **Geomorfología Aluvial:** Sectores ubicados en la llanura de inundación del Río Teaone con cotas inferiores a 12 msnm.\n"
+                f"- **Cercanía al Cauce:** Viviendas construidas a menos de 25 metros de la orilla sin muros de contención adecuados.\n\n"
+                f"**Acción Preventiva Sugerida:** Priorizar dragado y desazolve estacional, colocación de escolleras y simulacros de evacuación comunitaria con la directiva barrial."
+                + DISCLAIMER
+            )
+
+        # -------------------------------------------------------------
+        # 6. INTENCIÓN: Simulación de Lluvias / Escenarios / Río Teaone
+        # -------------------------------------------------------------
+        elif any(w in q for w in [
+            'simula', 'simulación', 'simulacion', 'crecida', 'escenario', 'desborde',
+            'teaone', '120', 'caudal', 'precipitación', 'precipitacion', 'alerta roja'
         ]):
             categoria = "SIMULACION"
             match_lluvia = re.search(r'(\d+)\s*(mm|milimetros|milímetros)?', q)
@@ -274,48 +317,6 @@ class AIAssistantService:
                 f"1. Activar sirenas de alerta temprana en la cuenca baja del Teaone.\n"
                 f"2. Desplegar cuadrillas de Bomberos con botes tácticos en puntos de extracción segura.\n"
                 f"3. Habilitar formalmente el **Coliseo Nubia Villacís** para recepción de evacuados."
-                + DISCLAIMER
-            )
-
-        # -------------------------------------------------------------
-        # 6. INTENCIÓN: Recurrencia / Zonas Críticas / Sectores Vulnerables
-        # -------------------------------------------------------------
-        elif any(w in q for w in [
-            'recurrencia', 'sector', 'sectores', 'peligros', 'vulnerab', 'crítico',
-            'critico', 'frecuente', 'vulnerabilidad'
-        ]):
-            categoria = "RECURRENCIA"
-            sectores = rec.calcular_sectores_recurrentes()
-            top_rec = sectores[:4]
-            
-            datos_contexto = {
-                "tipo": "recurrencia",
-                "total_sectores": len(sectores),
-                "top_sectores": [
-                    {
-                        "sector": s['sector'],
-                        "indice": s['indice_recurrencia'],
-                        "distancia_cauce_m": s['distancia_cauce_m'],
-                        "nivel_riesgo": s['nivel_riesgo']
-                    }
-                    for s in top_rec
-                ]
-            }
-
-            detalles = "\n".join([
-                f"- **{s['sector']}** ({s.get('canton', 'Esmeraldas')}): Índice Recurrencia `{s['indice_recurrencia']}/100` [{s['nivel_riesgo']}]. "
-                f"Distancia a cauce: **{s['distancia_cauce_m']}m** • Familias afectadas históricamente: **{s['total_familias_afectadas']}**."
-                for s in top_rec
-            ])
-
-            respuesta = (
-                f"📍 **Análisis de Recurrencia Histórica de Inundaciones (2019-2026):**\n\n"
-                f"El análisis territorial multianual identifica los sectores con mayor susceptibilidad hidrometeorológica repetitiva en el cantón Esmeraldas:\n\n"
-                f"{detalles}\n\n"
-                f"🔍 **Factores Determinantes de Vulnerabilidad:**\n"
-                f"- **Geomorfología Aluvial:** Sectores ubicados en la llanura de inundación del Río Teaone con cotas inferiores a 12 msnm.\n"
-                f"- **Cercanía al Cauce:** Viviendas construidas a menos de 25 metros de la orilla sin muros de contención adecuados.\n\n"
-                f"**Acción Preventiva Sugerida:** Priorizar dragado y desazolve estacional, colocación de escolleras y simulacros de evacuación comunitaria con la directiva barrial."
                 + DISCLAIMER
             )
 

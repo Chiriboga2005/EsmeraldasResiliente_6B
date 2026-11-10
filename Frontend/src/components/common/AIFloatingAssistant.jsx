@@ -426,17 +426,43 @@ Estoy entrenado con modelos de **Machine Learning (Scikit-Learn)** y conectado a
 
     try {
       const res = await aiApi.consultar(textToSend);
-      const aiMsg = {
-        id: res.id || `ai-${Date.now()}`,
-        sender: 'ai',
-        text: res.respuesta,
-        categoria: res.categoria,
-        datos: res.datos_contexto,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages((prev) => [...prev, aiMsg]);
+      if (res && res.respuesta) {
+        const aiMsg = {
+          id: res.id || `ai-${Date.now()}`,
+          sender: 'ai',
+          text: res.respuesta,
+          categoria: res.categoria,
+          datos: res.datos_contexto,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages((prev) => [...prev, aiMsg]);
+        return;
+      }
+      throw new Error('Respuesta inválida del servidor');
     } catch (err) {
-      console.error('Error al consultar IA:', err);
+      console.warn('Consulta directa falló o tardó; verificando si se persistió en la BD...', err);
+      // Respaldo resiliente: comprobar si el backend ya guardó la respuesta en Aiven PostgreSQL
+      try {
+        const historyData = await aiApi.getHistorial();
+        if (Array.isArray(historyData) && historyData.length > 0) {
+          const latest = historyData[0];
+          if (latest && latest.respuesta) {
+            const recoveredMsg = {
+              id: latest.id || `ai-${Date.now()}`,
+              sender: 'ai',
+              text: latest.respuesta,
+              categoria: latest.categoria,
+              datos: latest.datos_contexto,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            setMessages((prev) => [...prev, recoveredMsg]);
+            return;
+          }
+        }
+      } catch (histErr) {
+        console.error('No se pudo recuperar del historial:', histErr);
+      }
+
       setMessages((prev) => [
         ...prev,
         {
