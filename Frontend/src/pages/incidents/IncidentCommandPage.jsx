@@ -231,6 +231,12 @@ export const IncidentCommandPage = () => {
     }
   };
 
+  const handleVerEnMapa = (inc) => {
+    const lat = inc.latitud || (inc.geometry?.coordinates ? inc.geometry.coordinates[1] : (inc.lat || 0.9682));
+    const lon = inc.longitud || (inc.geometry?.coordinates ? inc.geometry.coordinates[0] : (inc.lon || inc.lng || -79.6517));
+    navigate(`/?focusIncident=${inc.id}&lat=${lat}&lon=${lon}`);
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
       
@@ -520,7 +526,7 @@ export const IncidentCommandPage = () => {
               <div className="pt-3 border-t border-slate-200 dark:border-crisis-700/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => navigate('/')}
+                    onClick={() => handleVerEnMapa(inc)}
                     className="w-full sm:w-auto justify-center px-3 py-1.5 text-xs font-bold text-sky-800 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 hover:bg-sky-100 dark:hover:bg-sky-500/20 rounded-lg border border-sky-300 dark:border-sky-500/30 flex items-center gap-1.5 transition shadow-sm"
                     title="Ver coordenadas en el mapa satelital"
                   >

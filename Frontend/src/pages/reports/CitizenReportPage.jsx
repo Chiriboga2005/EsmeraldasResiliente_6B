@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   AlertTriangle, 
   MapPin, 
@@ -7,17 +7,21 @@ import {
   CheckCircle2, 
   WifiOff, 
   Users, 
-  AlertCircle 
+  AlertCircle,
+  User
 } from 'lucide-react';
 import { reportsApi } from '../../api/reportsApi';
 import { useOffline } from '../../context/OfflineContext';
+import { useAuth } from '../../context/AuthContext';
 
 export const CitizenReportPage = () => {
   const { isOnline, saveReportOffline } = useOffline();
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     tipo_evento: 'INUNDACION',
     nivel_gravedad: 'MEDIO',
+    nombre_informante: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.username || ''),
     descripcion: '',
     personas_atrapadas: 0,
     familias_afectadas: 1,
@@ -31,41 +35,57 @@ export const CitizenReportPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
 
-  // Captura GPS del navegador móvil
+  // Captura GPS automática al abrir la pantalla o con un clic
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
-      alert('Tu navegador no soporta geolocalización GPS.');
+      console.warn('Tu navegador no soporta geolocalización GPS.');
       return;
     }
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        const lat = pos.coords.latitude.toFixed(6);
+        const lng = pos.coords.longitude.toFixed(6);
         setFormData((prev) => ({
           ...prev,
-          lat: pos.coords.latitude.toFixed(6),
-          lng: pos.coords.longitude.toFixed(6),
+          lat,
+          lng,
         }));
         setGpsLoading(false);
       },
       (err) => {
-        console.warn('Error GPS:', err);
-        // Coordenadas aproximadas de Esmeraldas si el usuario deniega GPS
+        console.warn('GPS no disponible o denegado:', err);
         setFormData((prev) => ({
           ...prev,
-          lat: '0.968200',
-          lng: '-79.651700',
+          lat: prev.lat || '0.968200',
+          lng: prev.lng || '-79.651700',
         }));
         setGpsLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
+
+  // Obtener ubicación GPS al instante al cargar la página
+  useEffect(() => {
+    handleGetLocation();
+  }, []);
 
   const handleFotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setFoto(file);
       setFotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const guardarEnAlmacenamientoLocal = (reporte) => {
+    try {
+      let reportesPendientes = JSON.parse(localStorage.getItem('reportes_offline')) || [];
+      reportesPendientes.push(reporte);
+      localStorage.setItem('reportes_offline', JSON.stringify(reportesPendientes));
+    } catch (e) {
+      console.warn('Error guardando en localStorage:', e);
     }
   };
 
@@ -81,10 +101,12 @@ export const CitizenReportPage = () => {
     const payload = {
       tipo_evento: formData.tipo_evento,
       nivel_gravedad: formData.nivel_gravedad,
+      nombre_informante: formData.nombre_informante || 'Ciudadano',
       descripcion: formData.descripcion,
       personas_atrapadas: Number(formData.personas_atrapadas),
       familias_afectadas: Number(formData.familias_afectadas),
       lat: parseFloat(formData.lat),
+      lon: parseFloat(formData.lng),
       lng: parseFloat(formData.lng),
     };
 
@@ -101,20 +123,22 @@ export const CitizenReportPage = () => {
         });
         resetForm();
       } catch (err) {
-        console.warn('Error enviando reporte online, guardando en Dexie offline:', err);
+        console.warn('Error enviando reporte online, guardando offline:', err);
         await saveReportOffline(payload);
+        guardarEnAlmacenamientoLocal(payload);
         setStatusMessage({
           type: 'offline',
-          text: 'Fallo de conexión. Tu reporte se guardó de forma segura en tu teléfono (Modo Offline) y se sincronizará automáticamente al detectar internet.',
+          text: 'Sin conexión o fallo de red. Tu reporte se guardó de forma segura en tu dispositivo (Modo Offline) y se enviará automáticamente al COE al detectar señal.',
         });
         resetForm();
       }
     } else {
       // Modo offline directo
       await saveReportOffline(payload);
+      guardarEnAlmacenamientoLocal(payload);
       setStatusMessage({
         type: 'offline',
-        text: 'Sin señal de internet. El reporte se guardó localmente en la memoria del dispositivo y se enviará tan pronto recuperes red celular.',
+        text: 'Sin señal de internet. Tu reporte de emergencia con coordenadas GPS se guardó localmente y se transmitirá al COE en cuanto recuperes señal celular.',
       });
       resetForm();
     }
@@ -125,6 +149,7 @@ export const CitizenReportPage = () => {
     setFormData({
       tipo_evento: 'INUNDACION',
       nivel_gravedad: 'MEDIO',
+      nombre_informante: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.username || ''),
       descripcion: '',
       personas_atrapadas: 0,
       familias_afectadas: 1,
@@ -291,6 +316,21 @@ export const CitizenReportPage = () => {
               className="w-full mt-1 bg-white dark:bg-crisis-900 border border-slate-300 dark:border-crisis-600 rounded-lg px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200"
             />
           </div>
+        </div>
+
+        {/* Nombre del Ciudadano / Informante */}
+        <div>
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase flex items-center gap-1.5">
+            <User className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
+            <span>Nombre del Informante / Ciudadano</span>
+          </label>
+          <input
+            type="text"
+            value={formData.nombre_informante}
+            onChange={(e) => setFormData({ ...formData, nombre_informante: e.target.value })}
+            placeholder="ej: Carlos Minda"
+            className="w-full bg-slate-50 dark:bg-crisis-900 border border-slate-300 dark:border-crisis-600 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500"
+          />
         </div>
 
         {/* Descripción */}

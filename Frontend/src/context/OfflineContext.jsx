@@ -48,8 +48,10 @@ export const OfflineProvider = ({ children }) => {
         tipo_evento: p.tipo_evento,
         nivel_gravedad: p.nivel_gravedad,
         descripcion: p.descripcion,
+        nombre_informante: p.nombre_informante,
         lat: p.lat,
-        lng: p.lng,
+        lon: p.lon || p.lng,
+        lng: p.lng || p.lon,
         precision_gps_metros: p.precision_gps_metros || 10,
         fecha_incidente: p.fecha_incidente,
       }));

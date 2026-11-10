@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   MapContainer, 
   TileLayer, 
@@ -32,11 +33,17 @@ import {
   HeartPulse,
   X,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  User,
+  AlertOctagon,
+  Eye,
+  Radio,
+  ExternalLink
 } from 'lucide-react';
 import { gisApi } from '../../api/gisApi';
 import { weatherApi } from '../../api/weatherApi';
 import { evacuationApi } from '../../api/evacuationApi';
+import { reportsApi } from '../../api/reportsApi';
 import { useAuth } from '../../context/AuthContext';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary';
 
@@ -190,6 +197,101 @@ const createHospitalMarker = (tipo = 'HOSPITAL', isAdmin = false) => {
   });
 };
 
+// Ícono personalizado para incidentes comunitarios clasificados por nivel de gravedad
+const createIncidentMarker = (gravedad = 'MEDIO', tipo = 'INCIDENTE', isSelected = false) => {
+  const g = (gravedad || '').toUpperCase();
+  let bgColor = '#f59e0b';
+  let ringColor = '#d97706';
+  let pulseHtml = '';
+
+  if (g === 'CRITICO') {
+    bgColor = '#dc2626';
+    ringColor = '#ef4444';
+    pulseHtml = `
+      <div style="
+        position: absolute;
+        top: -6px;
+        left: -6px;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(220, 38, 38, 0.45);
+        animation: ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+        pointer-events: none;
+      "></div>
+    `;
+  } else if (g === 'ALTO') {
+    bgColor = '#ea580c';
+    ringColor = '#f97316';
+  } else if (g === 'BAJO') {
+    bgColor = '#10b981';
+    ringColor = '#34d399';
+  }
+
+  const border = isSelected ? '3px solid #38bdf8' : '2.5px solid #ffffff';
+  const label = g;
+
+  return L.divIcon({
+    html: `
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.65));">
+        ${pulseHtml}
+        <div style="
+          position: relative;
+          z-index: 2;
+          width: 36px; 
+          height: 36px; 
+          background: ${bgColor}; 
+          border: ${border}; 
+          border-radius: 50%; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center;
+          color: white;
+          box-shadow: 0 0 14px ${bgColor}aa;
+          ${isSelected ? 'transform: scale(1.15); transition: transform 0.2s;' : ''}
+        ">
+          <!-- Pictograma de Alerta / Incidente -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div style="
+          position: relative;
+          z-index: 2;
+          width: 0; 
+          height: 0; 
+          border-left: 6px solid transparent; 
+          border-right: 6px solid transparent; 
+          border-top: 7px solid ${bgColor}; 
+          margin-top: -1px;
+        "></div>
+        <div style="
+          position: relative;
+          z-index: 2;
+          margin-top: 1px;
+          background: rgba(15, 23, 42, 0.95);
+          color: #ffffff;
+          padding: 1px 6px;
+          border-radius: 6px;
+          font-size: 8.5px;
+          font-weight: 800;
+          letter-spacing: 0.3px;
+          border: 1px solid ${isSelected ? '#38bdf8' : ringColor};
+          white-space: nowrap;
+        ">
+          ${label}
+        </div>
+      </div>
+    `,
+    className: 'custom-incident-marker',
+    iconSize: [44, 58],
+    iconAnchor: [22, 50],
+    popupAnchor: [0, -50],
+  });
+};
+
 // Etiqueta territorial para cantones (Mapa/Ubicación administrativa con temperatura en vivo)
 const createCantonPin = (nombre, isSelected, temp = null) => L.divIcon({
   html: `
@@ -312,12 +414,21 @@ export const CrisisRoomPage = () => {
   // Mapa base: 'calles' (Esri AWS sin marca de agua) | 'sat' (Esri Satélite HD) | 'osm' (Francia) | 'carto' (Voyager)
   const [baseMap, setBaseMap] = useState('calles');
 
+  // Navegación y parámetros URL para foco automático desde Centro de Incidentes
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Estado de incidentes comunitarios en vivo (Aiven PostgreSQL)
+  const [incidentesData, setIncidentesData] = useState(null);
+  const [selectedIncidentId, setSelectedIncidentId] = useState(null);
+
   // Capas territoriales conmutables
   const [layers, setLayers] = useState({
     zonasRiesgo: true,
     albergues: true,
     infraestructuras: true,
     redHidrica: true,
+    incidentes: true,
   });
 
   // Normalización defensiva de listas de infraestructuras y albergues
@@ -338,6 +449,40 @@ export const CrisisRoomPage = () => {
     if (albergues.results?.features) return albergues.results.features;
     return [];
   }, [albergues]);
+
+  // Filtro de incidentes activos: Solo se muestran los que NO están ATENDIDO ni DESCARTADO
+  const activeIncidentFeatures = useMemo(() => {
+    if (!incidentesData) return [];
+    let list = [];
+    if (Array.isArray(incidentesData)) list = incidentesData;
+    else if (Array.isArray(incidentesData.features)) list = incidentesData.features;
+    else if (Array.isArray(incidentesData.results)) list = incidentesData.results;
+    else if (incidentesData.results?.features) list = incidentesData.results.features;
+
+    return list.filter((feat) => {
+      const p = feat.properties || feat;
+      const estado = (p.estado || '').toUpperCase();
+      return estado !== 'ATENDIDO' && estado !== 'DESCARTADO';
+    });
+  }, [incidentesData]);
+
+  // Manejo de foco desde "Ver en Mapa" en Centro de Incidentes (?focusIncident=ID&lat=...&lon=...)
+  useEffect(() => {
+    const focusIncidentId = searchParams.get('focusIncident');
+    const focusLat = searchParams.get('lat');
+    const focusLon = searchParams.get('lon');
+
+    if (focusLat && focusLon) {
+      const lat = parseFloat(focusLat);
+      const lon = parseFloat(focusLon);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        setTargetFly({ lat, lon, zoom: 17, ts: Date.now() });
+        if (focusIncidentId) {
+          setSelectedIncidentId(String(focusIncidentId));
+        }
+      }
+    }
+  }, [searchParams]);
 
   // Línea de tiempo interactiva (MSN El Tiempo Timeline)
   const [timelineIndex, setTimelineIndex] = useState(11);
@@ -594,20 +739,22 @@ export const CrisisRoomPage = () => {
     }
   }, []);
 
-  // Carga inicial de capas territoriales y clima
+  // Carga inicial de capas territoriales, incidentes y clima
   const loadInitialData = async () => {
     try {
-      const [zr, rh, inf, alb] = await Promise.allSettled([
+      const [zr, rh, inf, alb, rep] = await Promise.allSettled([
         gisApi.getZonasRiesgo(),
         gisApi.getRedHidricaVial(),
         gisApi.getInfraestructuras(),
         evacuationApi.getAlbergues(),
+        reportsApi.getReportes(),
       ]);
 
       if (zr.status === 'fulfilled') setZonasRiesgo(zr.value);
       if (rh.status === 'fulfilled') setRedHidrica(rh.value);
       if (inf.status === 'fulfilled') setInfraestructuras(inf.value);
       if (alb.status === 'fulfilled') setAlbergues(alb.value);
+      if (rep.status === 'fulfilled') setIncidentesData(rep.value);
 
       // Cargar clima de Esmeraldas inicial
       await fetchWeatherForCanton(CANTONES[0]);
@@ -618,6 +765,18 @@ export const CrisisRoomPage = () => {
 
   useEffect(() => {
     loadInitialData();
+
+    // Sondeo periódico cada 15 segundos para capturar nuevos incidentes reportados en vivo
+    const timer = setInterval(async () => {
+      try {
+        const freshRep = await reportsApi.getReportes();
+        if (freshRep) setIncidentesData(freshRep);
+      } catch (e) {
+        // Ignorar errores transitorios de red en sondeo
+      }
+    }, 15000);
+
+    return () => clearInterval(timer);
   }, [fetchWeatherForCanton]);
 
   // Detector automático de cantón al mover o hacer zoom en el mapa
@@ -714,6 +873,12 @@ export const CrisisRoomPage = () => {
               <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span>
               SALA DE CRISIS COE • RADAR EN VIVO
             </span>
+            {activeIncidentFeatures.length > 0 && (
+              <span className="flex items-center gap-1.5 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-300 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/40 shadow-sm animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-red-600 dark:bg-red-500"></span>
+                <span>{activeIncidentFeatures.length} {activeIncidentFeatures.length === 1 ? 'Incidente Activo' : 'Incidentes Activos'}</span>
+              </span>
+            )}
             <span className="text-[11px] text-slate-600 dark:text-slate-300 hidden lg:inline font-medium">
               Provincia de Esmeraldas • Open-Meteo & OpenWeatherMap
             </span>
@@ -820,10 +985,16 @@ export const CrisisRoomPage = () => {
             </div>
 
             <button
-              onClick={() => fetchWeatherForCanton(activeCanton)}
+              onClick={async () => {
+                fetchWeatherForCanton(activeCanton);
+                try {
+                  const rep = await reportsApi.getReportes();
+                  if (rep) setIncidentesData(rep);
+                } catch (e) {}
+              }}
               disabled={loadingWeather}
               className="p-1.5 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-crisis-700 dark:hover:bg-crisis-600 rounded-lg border border-slate-300 dark:border-crisis-600 transition"
-              title="Refrescar telemetría del cantón activo"
+              title="Refrescar telemetría e incidentes en vivo"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loadingWeather ? 'animate-spin text-sky-500 dark:text-sky-400' : ''}`} />
             </button>
@@ -1145,6 +1316,130 @@ export const CrisisRoomPage = () => {
                           </button>
                         </div>
                       )}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+
+            {/* 7. INCIDENTES Y EMERGENCIAS COMUNITARIAS EN VIVO (MARCADORES POR GRAVEDAD) */}
+            {layers.incidentes && activeIncidentFeatures.map((feature, i) => {
+              const p = feature.properties || feature;
+              let lat = null;
+              let lon = null;
+              if (feature.geometry?.coordinates) {
+                lon = feature.geometry.coordinates[0];
+                lat = feature.geometry.coordinates[1];
+              } else if (p.latitud != null && p.longitud != null) {
+                lat = Number(p.latitud);
+                lon = Number(p.longitud);
+              } else if (p.lat != null && (p.lon != null || p.lng != null)) {
+                lat = Number(p.lat);
+                lon = Number(p.lon != null ? p.lon : p.lng);
+              }
+
+              if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) return null;
+
+              const incId = String(feature.id || p.id || `inc-${i}`);
+              const isSelected = String(selectedIncidentId) === incId;
+              const gravedad = (p.nivel_gravedad || 'MEDIO').toUpperCase();
+              const estado = (p.estado || 'PENDIENTE').toUpperCase();
+              const informante = p.usuario_nombre || feature.usuario_nombre || 'Ciudadano / Móvil';
+
+              return (
+                <Marker
+                  key={`incident-marker-${incId}`}
+                  position={[lat, lon]}
+                  icon={createIncidentMarker(gravedad, p.tipo_evento, isSelected)}
+                  ref={(ref) => {
+                    if (ref && isSelected) {
+                      setTimeout(() => {
+                        try {
+                          ref.openPopup();
+                        } catch (e) {}
+                      }, 500);
+                    }
+                  }}
+                  eventHandlers={{
+                    click: () => setSelectedIncidentId(incId),
+                  }}
+                >
+                  <Popup minWidth={270} maxWidth={340}>
+                    <div className="text-xs space-y-2 p-1 text-slate-800 dark:text-slate-200">
+                      {/* Cabecera: Tipo de evento y Nivel de Gravedad */}
+                      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-1.5">
+                        <span className="font-extrabold text-sm uppercase tracking-wide text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <AlertTriangle className={`w-4 h-4 shrink-0 ${
+                            gravedad === 'CRITICO' ? 'text-red-600 dark:text-red-500 animate-pulse' :
+                            gravedad === 'ALTO' ? 'text-orange-500' :
+                            gravedad === 'MEDIO' ? 'text-amber-500' : 'text-emerald-500'
+                          }`} />
+                          <span>{p.tipo_evento?.replace(/_/g, ' ') || 'INCIDENTE'}</span>
+                        </span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase border ${
+                          gravedad === 'CRITICO'
+                            ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/40 shadow-sm'
+                            : gravedad === 'ALTO'
+                            ? 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/40'
+                            : gravedad === 'MEDIO'
+                            ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40'
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40'
+                        }`}>
+                          {gravedad}
+                        </span>
+                      </div>
+
+                      {/* Informante y Estado */}
+                      <div className="bg-slate-100 dark:bg-slate-800/80 p-2 rounded-lg space-y-1 border border-slate-200 dark:border-slate-700/60">
+                        <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                          <User className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400 shrink-0" />
+                          <span>Informante: <strong className="text-slate-900 dark:text-white">{informante}</strong></span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                          <span>Estado: <strong className="text-sky-600 dark:text-sky-400 font-bold">{estado}</strong></span>
+                          {p.sincronizado_offline && (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                              <span>📡</span> Sincronizado Offline
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Descripción */}
+                      {p.descripcion && (
+                        <p className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed italic bg-amber-50/70 dark:bg-amber-950/25 p-2 rounded-lg border border-amber-200/70 dark:border-amber-800/40">
+                          "{p.descripcion}"
+                        </p>
+                      )}
+
+                      {/* Métricas de Afectación */}
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <div className="bg-slate-100 dark:bg-slate-800/90 p-2 rounded-lg text-center border border-slate-200 dark:border-slate-700/60">
+                          <span className="block text-slate-500 dark:text-slate-400 text-[10px]">Atrapadas</span>
+                          <strong className="text-red-600 dark:text-red-400 text-sm font-black">{p.personas_atrapadas || 0}</strong>
+                        </div>
+                        <div className="bg-slate-100 dark:bg-slate-800/90 p-2 rounded-lg text-center border border-slate-200 dark:border-slate-700/60">
+                          <span className="block text-slate-500 dark:text-slate-400 text-[10px]">Familias Afectadas</span>
+                          <strong className="text-slate-900 dark:text-slate-100 text-sm font-black">{p.familias_afectadas || 0}</strong>
+                        </div>
+                      </div>
+
+                      {/* Coordenadas GPS y Hora */}
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono space-y-0.5 border-t border-slate-200 dark:border-slate-700/60 pt-1.5 flex items-center justify-between">
+                        <span>GPS: {lat.toFixed(5)}, {lon.toFixed(5)}</span>
+                        {p.fecha_incidente && (
+                          <span>{new Date(p.fecha_incidente).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        )}
+                      </div>
+
+                      {/* Botón para navegar a Seguimiento de Incidentes */}
+                      <button
+                        onClick={() => navigate('/incidentes')}
+                        className="w-full mt-1.5 py-1.5 bg-sky-600 hover:bg-sky-500 active:scale-98 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition shadow"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Gestionar en Seguimiento Incidentes</span>
+                      </button>
                     </div>
                   </Popup>
                 </Marker>
