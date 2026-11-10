@@ -98,11 +98,13 @@ class KeycloakOrJWTAuthentication(authentication.BaseAuthentication):
         is_staff = False
         is_superuser = False
 
-        if 'ADMINISTRADOR' in kc_roles or 'ADMIN' in kc_roles or 'GESTOR' in kc_roles:
+        if 'ADMINISTRADOR' in kc_roles or 'ADMIN' in kc_roles or username.lower() == 'admin':
+            rol = RolUsuario.ADMINISTRADOR
+            is_staff = True
+            is_superuser = True
+        elif 'GESTOR' in kc_roles:
             rol = RolUsuario.GESTOR
             is_staff = True
-            if 'ADMINISTRADOR' in kc_roles or 'ADMIN' in kc_roles:
-                is_superuser = True
         elif 'OPERADOR' in kc_roles or 'OPERADOR_COE' in kc_roles:
             rol = RolUsuario.OPERADOR
             is_staff = True

@@ -32,22 +32,29 @@ export const LoginPage = () => {
           const payload = JSON.parse(jsonPayload);
 
           const roles = (payload.realm_access?.roles || []).map((r) => r.toUpperCase());
+          const preferredUsername = (payload.preferred_username || '').toLowerCase();
+          
           let rol = 'INVITADO';
-          if (roles.includes('ADMINISTRADOR') || roles.includes('ADMIN') || roles.includes('GESTOR')) {
+          if (roles.includes('ADMINISTRADOR') || roles.includes('ADMIN') || preferredUsername === 'admin') {
+            rol = 'ADMINISTRADOR';
+          } else if (roles.includes('GESTOR')) {
             rol = 'GESTOR';
           } else if (roles.includes('OPERADOR')) {
             rol = 'OPERADOR';
           } else if (roles.includes('DIGITALIZADOR')) {
             rol = 'DIGITALIZADOR';
+          } else if (roles.includes('CIUDADANO')) {
+            rol = 'CIUDADANO';
           }
 
           const kcUser = {
             id: payload.sub,
             username: payload.preferred_username || payload.email,
-            nombre_completo: payload.name || payload.preferred_username || 'Usuario Keycloak',
+            nombre_completo: preferredUsername === 'admin' ? 'Administrador COE' : (payload.name || payload.preferred_username || 'Usuario Keycloak'),
             email: payload.email,
             rol: rol,
-            is_staff: rol === 'GESTOR' || rol === 'OPERADOR',
+            is_staff: rol === 'ADMINISTRADOR' || rol === 'GESTOR' || rol === 'OPERADOR',
+            is_superuser: rol === 'ADMINISTRADOR',
           };
 
           loginWithKeycloakToken(kcToken, kcUser);
@@ -83,7 +90,7 @@ export const LoginPage = () => {
     const realm = 'esmeraldas-resiliente';
     const clientId = 'frontend-web';
     const redirectUri = window.location.origin + '/login';
-    const authUrl = `${kcBaseUrl}/realms/${realm}/protocol/openid-connect/auth?client_id=${clientId}&response_type=token&scope=openid%20profile%20email&redirect_uri=${encodeURIComponent(
+    const authUrl = `${kcBaseUrl}/realms/${realm}/protocol/openid-connect/auth?client_id=${clientId}&response_type=token&scope=openid%20profile%20email&prompt=login&redirect_uri=${encodeURIComponent(
       redirectUri
     )}`;
     window.location.href = authUrl;
@@ -176,6 +183,59 @@ export const LoginPage = () => {
           <span>Ingresar con Keycloak IAM (Single Sign-On)</span>
           <ExternalLink className="w-3.5 h-3.5 opacity-70 ml-1" />
         </button>
+
+        {/* Acceso Rápido por Roles para Evaluación de Hackathon */}
+        <div className="pt-2 border-t border-crisis-700/80">
+          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">
+            Perfiles de Prueba Rápidos (Hackathon 6B)
+          </span>
+          <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+            <button
+              type="button"
+              onClick={() => {
+                setUsername('admin');
+                setPassword('Esmeraldas2026*');
+              }}
+              className="p-1.5 rounded-lg bg-crisis-900 hover:bg-crisis-950 border border-red-500/30 text-red-300 text-left transition flex items-center gap-1.5"
+            >
+              <span className="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
+              <span className="truncate">👑 Admin COE</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setUsername('antonella123@gmail.com');
+                setPassword('123antonella');
+              }}
+              className="p-1.5 rounded-lg bg-crisis-900 hover:bg-crisis-950 border border-purple-500/30 text-purple-300 text-left transition flex items-center gap-1.5"
+            >
+              <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span>
+              <span className="truncate">🛡️ Antonella (Gestor)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setUsername('axelrosero123@gmail.com');
+                setPassword('123Axel');
+              }}
+              className="p-1.5 rounded-lg bg-crisis-900 hover:bg-crisis-950 border border-amber-500/30 text-amber-300 text-left transition flex items-center gap-1.5"
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+              <span className="truncate">⚡ Axel (Operador)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setUsername('jomira123@gmail.com');
+                setPassword('Jomira123');
+              }}
+              className="p-1.5 rounded-lg bg-crisis-900 hover:bg-crisis-950 border border-emerald-500/30 text-emerald-300 text-left transition flex items-center gap-1.5"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+              <span className="truncate">📋 Jomira (Digitalizador)</span>
+            </button>
+          </div>
+        </div>
 
         <div className="text-center pt-2 border-t border-crisis-700">
           <p className="text-[11px] text-slate-500">
