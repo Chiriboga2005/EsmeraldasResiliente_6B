@@ -50,12 +50,14 @@ docker compose logs -f
 > * Puedes apagar la PC hoy.
 > * Encender otra PC mañana en otro lugar.
 > * Ejecutar `docker compose up -d` y **todos tus usuarios y configuraciones estarán exactamente igual**.
+> 
+> ✅ **ESTADO ACTUAL:** El Realm `esmeraldas-resiliente`, los 4 Roles (`ADMINISTRADOR`, `GESTOR`, `OPERADOR`, `DIGITALIZADOR`), los Clientes (`frontend-web` con Implicit & Standard Flow) y los 4 Usuarios ya están **CREADOS Y GUARDADOS EN AIVEN**. Por lo tanto, mañana al encender otra PC **NO necesitas crearlos de nuevo**, ya estarán disponibles automáticamente.
 
 ---
 
-## 5. Configuración del Realm y Usuarios para la Demo del Hackathon
+## 5. Configuración del Realm y Usuarios para la Demo del Hackathon (Referencia)
 
-Una vez dentro de la consola web:
+*(Solo como referencia en caso de que quieras auditar o ver los datos en la consola)*
 
 ### A. Crear Realm
 * Menú superior izquierdo (debajo de "Keycloak") -> clic en **Master** -> **Create Realm**.
@@ -111,6 +113,27 @@ En **Users** -> **Add user**:
 Si en Docker Desktop tienes otro contenedor usando el puerto 8080 (por ejemplo `sgim-migracion`):
 1. Detén el otro contenedor desde la interfaz de Docker Desktop haciendo clic en el botón de Stop (cuadrado).
 2. O bien, cambia la línea de puertos en `docker-compose.yml` de `"8080:8080"` a `"8081:8080"`, e ingresas a [http://localhost:8081](http://localhost:8081).
+
+### Aviso "Docker Desktop - WSL not installed":
+Si al abrir Docker Desktop en Windows aparece un mensaje que dice *"Windows Subsystem for Linux (WSL) is not installed"*:
+1. Esto ocurre cuando la interfaz gráfica de Docker intenta arrancar antes de que el servicio de Windows WSL2 responda.
+2. Abre PowerShell como Administrador y ejecuta:
+   ```powershell
+   wsl --update
+   ```
+3. Si el mensaje persiste, simplemente ejecuta en PowerShell:
+   ```powershell
+   wsl -d docker-desktop -e echo "WSL listo"
+   ```
+   Y luego abre Docker Desktop normalmente. El motor cargará de inmediato.
+
+### Enlazar Keycloak a la Nube con Cloudflare Tunnel:
+Para que la versión web en Render (`https://esmeraldasresiliente-6b.onrender.com`) pueda autenticarse con tu Keycloak local:
+Abre una terminal CMD o PowerShell y ejecuta:
+```bash
+cloudflared tunnel --url http://localhost:8080
+```
+Copia la URL `https://xxxx.trycloudflare.com` que te genera y úsala para iniciar sesión.
 
 ### Cómo detener Keycloak:
 Haz doble clic sobre `detener_keycloak.bat` o ejecuta:
