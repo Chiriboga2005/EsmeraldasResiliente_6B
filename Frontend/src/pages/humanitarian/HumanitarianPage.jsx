@@ -27,12 +27,14 @@ export const HumanitarianPage = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, isAdmin: authIsAdmin } = useAuth();
 
-  // Comprobar rol de administrador / operador
+  // Comprobar rol de gestión / operador / digitalizador
   const userRole = (user?.rol || user?.properties?.rol || '').toUpperCase();
   const userName = (user?.username || user?.properties?.username || '').toLowerCase();
   const isAdmin = authIsAdmin || (isAuthenticated && (
     userRole === 'ADMINISTRADOR' || 
+    userRole === 'GESTOR' ||
     userRole === 'OPERADOR' || 
+    userRole === 'DIGITALIZADOR' ||
     userName === 'admin' ||
     user?.is_staff ||
     user?.is_superuser

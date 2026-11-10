@@ -6,6 +6,7 @@ import {
   GeoJSON, 
   Marker, 
   Popup, 
+  Circle,
   useMap, 
   useMapEvents 
 } from 'react-leaflet';
@@ -1416,10 +1417,23 @@ export const CrisisRoomPage = () => {
               const informante = p.usuario_nombre || feature.usuario_nombre || 'Ciudadano / Móvil';
 
               return (
-                <Marker
-                  key={`incident-marker-${incId}`}
-                  position={[lat, lon]}
-                  icon={createIncidentMarker(gravedad, p.tipo_evento, isSelected)}
+                <React.Fragment key={`incident-group-${incId}`}>
+                  {/* Buffer Geoespacial PostGIS (25m de radio por defecto) */}
+                  <Circle
+                    center={[lat, lon]}
+                    radius={Number(p.radio_analisis_metros || 25)}
+                    pathOptions={{
+                      color: gravedad === 'CRITICO' ? '#dc2626' : gravedad === 'ALTO' ? '#ea580c' : '#0284c7',
+                      fillColor: gravedad === 'CRITICO' ? '#ef4444' : gravedad === 'ALTO' ? '#f97316' : '#38bdf8',
+                      fillOpacity: isSelected ? 0.35 : 0.16,
+                      weight: isSelected ? 2.5 : 1.5,
+                      dashArray: isSelected ? '4, 4' : undefined,
+                    }}
+                  />
+                  <Marker
+                    key={`incident-marker-${incId}`}
+                    position={[lat, lon]}
+                    icon={createIncidentMarker(gravedad, p.tipo_evento, isSelected)}
                   ref={(markerInstance) => {
                     if (markerInstance) {
                       incidentMarkerRefs.current[incId] = markerInstance;
@@ -1507,6 +1521,23 @@ export const CrisisRoomPage = () => {
                         </div>
                       </div>
 
+                      {/* Cruce Geoespacial PostGIS de Afectación Inmediata con Familias Censadas */}
+                      {(Number(p.personas_afectadas_estimadas) > 0 || Number(p.familias_en_perimetro) > 0) && (
+                        <div className="bg-purple-50 dark:bg-purple-950/40 p-2 rounded-lg border border-purple-200 dark:border-purple-800/60 text-[11px] space-y-1">
+                          <div className="flex justify-between items-center text-purple-950 dark:text-purple-300 font-extrabold">
+                            <span>Perímetro PostGIS ({Math.round(p.radio_analisis_metros || 25)}m):</span>
+                            <span className="px-1.5 py-0.5 rounded bg-purple-200 dark:bg-purple-900/60 text-purple-950 dark:text-purple-200 font-black">
+                              {p.personas_afectadas_estimadas} pers. ({p.familias_en_perimetro} fam.)
+                            </span>
+                          </div>
+                          {(Number(p.ninos_en_riesgo) > 0 || Number(p.adultos_mayores_riesgo) > 0 || Number(p.discapacitados_riesgo) > 0) && (
+                            <p className="text-[10px] text-purple-900 dark:text-purple-300 font-bold">
+                              • {p.ninos_en_riesgo || 0} niños &lt;5 | {p.adultos_mayores_riesgo || 0} ancianos | {p.discapacitados_riesgo || 0} disc.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {/* Coordenadas GPS y Hora */}
                       <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono space-y-0.5 border-t border-slate-200 dark:border-slate-700/60 pt-1.5 flex items-center justify-between">
                         <span>GPS: {lat.toFixed(5)}, {lon.toFixed(5)}</span>
@@ -1544,6 +1575,7 @@ export const CrisisRoomPage = () => {
                     </div>
                   </Popup>
                 </Marker>
+              </React.Fragment>
               );
             })}
           </MapContainer>

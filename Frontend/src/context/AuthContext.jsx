@@ -75,6 +75,7 @@ export const AuthProvider = ({ children }) => {
 
   const userRol = (user?.rol || user?.properties?.rol || '').toUpperCase();
   const userUsername = (user?.username || user?.properties?.username || '').toLowerCase();
+  
   const isAdmin = Boolean(
     user && (
       userRol === 'ADMINISTRADOR' || 
@@ -85,6 +86,11 @@ export const AuthProvider = ({ children }) => {
     )
   );
 
+  const isGestor = Boolean(isAdmin || userRol === 'GESTOR');
+  const isOperador = Boolean(isGestor || userRol === 'OPERADOR' || userRol === 'OPERADOR_COE');
+  const isDigitalizador = Boolean(userRol === 'DIGITALIZADOR');
+  const isInvitado = Boolean(!token || userRol === 'INVITADO' || userRol === 'CIUDADANO');
+
   return (
     <AuthContext.Provider
       value={{
@@ -92,6 +98,11 @@ export const AuthProvider = ({ children }) => {
         token,
         isAuthenticated: !!token,
         isAdmin,
+        isGestor,
+        isOperador,
+        isDigitalizador,
+        isInvitado,
+        userRol,
         loading,
         login,
         logout,

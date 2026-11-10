@@ -29,7 +29,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export const IncidentCommandPage = () => {
-  const { user, isAuthenticated, isAdmin } = useAuth();
+  const { user, isAuthenticated, isAdmin, isGestor, isOperador } = useAuth();
+  const canOperate = Boolean(isAdmin || isGestor || isOperador);
+  const canManage = Boolean(isAdmin || isGestor);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -103,10 +105,10 @@ export const IncidentCommandPage = () => {
     loadData();
   }, []);
 
-  // Actualizar estado de incidente (Workflow Módulo 3)
+  // Actualizar estado de incidente (Workflow Módulo 3: Operador, Gestor, Admin)
   const handleUpdateStatus = async (id, newStatus) => {
-    if (!isAdmin) {
-      alert('Acción restringida: Solo un Administrador autenticado del COE puede despachar o modificar estados de incidentes.');
+    if (!canOperate) {
+      alert('Acción restringida: Se requiere rol de Operador o Gestor del COE para despachar o modificar estados de incidentes.');
       return;
     }
     try {
@@ -118,8 +120,8 @@ export const IncidentCommandPage = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!isAdmin) {
-      alert('Acción restringida: Solo un Administrador autenticado del COE puede eliminar incidentes.');
+    if (!canManage) {
+      alert('Acción restringida: Se requiere rol de Gestor o Administrador del COE para eliminar incidentes.');
       return;
     }
     if (window.confirm('¿Confirmas que deseas eliminar permanentemente este incidente del sistema?')) {
@@ -278,19 +280,19 @@ export const IncidentCommandPage = () => {
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full md:w-auto">
           <button
             onClick={() => setShowAlertModal(true)}
-            disabled={!isAdmin}
+            disabled={!canManage}
             className={`flex-1 sm:flex-initial justify-center px-4 py-2 font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition ${
-              isAdmin
+              canManage
                 ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white active:scale-95 cursor-pointer'
                 : 'bg-slate-200 dark:bg-crisis-700 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-crisis-600 opacity-70'
             }`}
-            title={isAdmin ? 'Emitir alerta sectorial' : 'Solo Administradores del COE pueden emitir alertas sectoriales'}
+            title={canManage ? 'Emitir alerta sectorial' : 'Solo Gestores y Administradores del COE pueden emitir alertas sectoriales'}
           >
-            {isAdmin ? <BellRing className="w-4 h-4 shrink-0" /> : <Lock className="w-4 h-4 shrink-0" />}
+            {canManage ? <BellRing className="w-4 h-4 shrink-0" /> : <Lock className="w-4 h-4 shrink-0" />}
             <span>Emitir Alerta Sectorial</span>
-            {!isAdmin && (
+            {!canManage && (
               <span className="text-[10px] ml-1 px-1.5 py-0.2 rounded bg-slate-300 dark:bg-crisis-600 text-slate-600 dark:text-slate-300 font-semibold">
-                Solo Admin
+                Solo Gestor
               </span>
             )}
           </button>
@@ -306,15 +308,15 @@ export const IncidentCommandPage = () => {
         </div>
       </div>
 
-      {/* Banner informativo de modo consulta para Ciudadano / No Administrador */}
-      {!isAdmin && (
+      {/* Banner informativo de modo consulta para Ciudadano / No Operador */}
+      {!canOperate && (
         <div className="bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 text-sky-900 dark:text-sky-200 p-3 sm:p-3.5 rounded-xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center gap-2.5">
             <Lock className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
             <div>
-              <p className="font-bold text-slate-900 dark:text-white">Modo Ciudadano (Solo Lectura y Consulta):</p>
+              <p className="font-bold text-slate-900 dark:text-white">Modo Consulta (Invitado / Ciudadano):</p>
               <p className="text-slate-600 dark:text-slate-300 text-[11px] mt-0.5">
-                Puedes visualizar el estado de las emergencias y ubicarlas en el radar en vivo. El despacho de auxilio, actualización de estados operativos y alertas sectoriales están reservados exclusivamente para el Administrador del COE.
+                Puedes visualizar el estado de las emergencias y ubicarlas en el radar en vivo. El despacho de auxilio y cambio de estados operativos requieren autenticación como Operador o Gestor del COE.
               </p>
             </div>
           </div>
@@ -322,7 +324,7 @@ export const IncidentCommandPage = () => {
             onClick={() => navigate('/login')}
             className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold text-xs shrink-0 transition shadow-sm"
           >
-            Acceder como Administrador
+            Iniciar Sesión COE
           </button>
         </div>
       )}
@@ -556,6 +558,24 @@ export const IncidentCommandPage = () => {
                     <span>Familias afectadas:</span>
                     <span className="font-black text-sm text-amber-800 dark:text-amber-400">{inc.familias_afectadas}</span>
                   </div>
+
+                  {/* Cruce Geoespacial PostGIS con Familias Censadas */}
+                  {(Number(inc.familias_en_perimetro) > 0 || Number(inc.personas_afectadas_estimadas) > 0) && (
+                    <div className="pt-2 border-t border-purple-300 dark:border-purple-800/70 space-y-1">
+                      <div className="flex justify-between items-center text-purple-950 dark:text-purple-300 font-black text-[11px]">
+                        <span>Perímetro PostGIS ({Math.round(inc.radio_analisis_metros || 25)}m):</span>
+                        <span className="px-1.5 py-0.5 rounded bg-purple-200 dark:bg-purple-900/60 text-purple-950 dark:text-purple-200">
+                          {inc.personas_afectadas_estimadas} personas ({inc.familias_en_perimetro} fam.)
+                        </span>
+                      </div>
+                      {(Number(inc.ninos_en_riesgo) > 0 || Number(inc.adultos_mayores_riesgo) > 0 || Number(inc.discapacitados_riesgo) > 0) && (
+                        <p className="text-[10px] text-purple-900 dark:text-purple-300 font-bold">
+                          • {inc.ninos_en_riesgo || 0} niños &lt;5 | {inc.adultos_mayores_riesgo || 0} ancianos | {inc.discapacitados_riesgo || 0} disc.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-center text-slate-700 dark:text-slate-400 text-xs pt-1.5 border-t border-slate-300 dark:border-crisis-700 font-semibold">
                     <span>Informante:</span>
                     <span className="truncate max-w-[120px] font-bold text-slate-900 dark:text-white">{inc.usuario_nombre}</span>
@@ -576,81 +596,81 @@ export const IncidentCommandPage = () => {
                   </button>
                 </div>
 
-                {/* Botones de Cambio de Estado con Alto Contraste (Exclusivo Administrador) */}
+                {/* Botones de Cambio de Estado con Alto Contraste (Operador / Gestor / Admin) */}
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   {inc.estado === 'PENDIENTE' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'EN_PROCESO')}
-                      disabled={!isAdmin}
+                      disabled={!canOperate}
                       className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition flex items-center gap-1.5 shadow ${
-                        isAdmin
+                        canOperate
                           ? 'bg-sky-600 hover:bg-sky-500 text-white active:scale-95 cursor-pointer'
                           : 'bg-slate-200 dark:bg-crisis-700 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-crisis-600 opacity-60'
                       }`}
-                      title={isAdmin ? 'Despachar auxilio al incidente' : 'Acción restringida: Requiere cuenta Administrador'}
+                      title={canOperate ? 'Despachar auxilio al incidente' : 'Acción restringida: Requiere cuenta Operador o Gestor del COE'}
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
                       <span>Despachar / En Proceso</span>
-                      {!isAdmin && <Lock className="w-3 h-3 ml-0.5 text-slate-400" />}
+                      {!canOperate && <Lock className="w-3 h-3 ml-0.5 text-slate-400" />}
                     </button>
                   )}
 
                   {inc.estado === 'EN_PROCESO' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'ATENDIDO')}
-                      disabled={!isAdmin}
+                      disabled={!canOperate}
                       className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition flex items-center gap-1.5 shadow ${
-                        isAdmin
+                        canOperate
                           ? 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95 cursor-pointer'
                           : 'bg-slate-200 dark:bg-crisis-700 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-crisis-600 opacity-60'
                       }`}
-                      title={isAdmin ? 'Marcar caso como atendido' : 'Acción restringida: Requiere cuenta Administrador'}
+                      title={canOperate ? 'Marcar caso como atendido' : 'Acción restringida: Requiere cuenta Operador o Gestor del COE'}
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Marcar Atendido</span>
-                      {!isAdmin && <Lock className="w-3 h-3 ml-0.5 text-slate-400" />}
+                      {!canOperate && <Lock className="w-3 h-3 ml-0.5 text-slate-400" />}
                     </button>
                   )}
 
                   {inc.estado === 'ATENDIDO' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'EN_PROCESO')}
-                      disabled={!isAdmin}
+                      disabled={!canOperate}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow ${
-                        isAdmin
+                        canOperate
                           ? 'bg-slate-800 hover:bg-slate-700 text-white active:scale-95 cursor-pointer'
                           : 'bg-slate-200 dark:bg-crisis-700 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-crisis-600 opacity-60'
                       }`}
-                      title={isAdmin ? 'Reabrir caso' : 'Acción restringida: Requiere cuenta Administrador'}
+                      title={canOperate ? 'Reabrir caso' : 'Acción restringida: Requiere cuenta Operador o Gestor del COE'}
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
                       <span>Reabrir Caso</span>
-                      {!isAdmin && <Lock className="w-3 h-3 ml-0.5 text-slate-400" />}
+                      {!canOperate && <Lock className="w-3 h-3 ml-0.5 text-slate-400" />}
                     </button>
                   )}
 
                   {inc.estado !== 'DESCARTADO' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'DESCARTADO')}
-                      disabled={!isAdmin}
+                      disabled={!canOperate}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
-                        isAdmin
+                        canOperate
                           ? 'bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 border-slate-300 dark:bg-crisis-700 dark:text-slate-300 dark:border-crisis-600 dark:hover:bg-red-950/40 dark:hover:text-red-400 cursor-pointer'
                           : 'bg-slate-100 dark:bg-crisis-800 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-crisis-700 cursor-not-allowed opacity-60'
                       }`}
-                      title={isAdmin ? 'Descartar reporte no verificado o duplicado' : 'Acción restringida: Requiere cuenta Administrador'}
+                      title={canOperate ? 'Descartar reporte no verificado o duplicado' : 'Acción restringida: Requiere cuenta Operador o Gestor del COE'}
                     >
                       <span>Descartar</span>
-                      {!isAdmin && <Lock className="w-3 h-3 inline ml-1 text-slate-400" />}
+                      {!canOperate && <Lock className="w-3 h-3 inline ml-1 text-slate-400" />}
                     </button>
                   )}
 
-                  {/* Eliminar (Exclusivo Administrador) */}
-                  {isAdmin && (
+                  {/* Eliminar (Exclusivo Gestor / Administrador) */}
+                  {canManage && (
                     <button
                       onClick={() => handleDelete(inc.id)}
                       className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-crisis-700 dark:hover:text-red-400 rounded-lg transition"
-                      title="Eliminar reporte de la base de datos"
+                      title="Eliminar reporte de la base de datos (Gestor / Admin)"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

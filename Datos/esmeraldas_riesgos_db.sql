@@ -26,13 +26,25 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 -- --------------------------------------------------------------------------------------
 DO $$ BEGIN
     CREATE TYPE rol_usuario_enum AS ENUM (
+        'INVITADO',
         'CIUDADANO',
+        'DIGITALIZADOR',
+        'OPERADOR',
         'OPERADOR_COE',
+        'GESTOR',
+        'ADMINISTRADOR',
         'ANALISTA',
-        'ASISTENCIA',
-        'ADMINISTRADOR'
+        'ASISTENCIA'
     );
 EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Asegurar compatibilidad en Aiven si el tipo rol_usuario_enum ya fue creado previamente:
+DO $$ BEGIN
+    ALTER TYPE rol_usuario_enum ADD VALUE IF NOT EXISTS 'GESTOR';
+    ALTER TYPE rol_usuario_enum ADD VALUE IF NOT EXISTS 'OPERADOR';
+    ALTER TYPE rol_usuario_enum ADD VALUE IF NOT EXISTS 'DIGITALIZADOR';
+    ALTER TYPE rol_usuario_enum ADD VALUE IF NOT EXISTS 'INVITADO';
+EXCEPTION WHEN others THEN null; END $$;
 
 DO $$ BEGIN
     CREATE TYPE nivel_riesgo_enum AS ENUM ('ALTO', 'MEDIO', 'BAJO');
@@ -163,6 +175,14 @@ CREATE TABLE IF NOT EXISTS reportes_incidentes (
     familias_afectadas INT NOT NULL DEFAULT 0 CHECK (familias_afectadas >= 0),
     estimacion_danos_vivienda TEXT,
 
+    -- Cálculo automático PostGIS por radio perimetral (Cruce con Familias Censadas)
+    personas_afectadas_estimadas INT DEFAULT 0,
+    familias_en_perimetro INT DEFAULT 0,
+    ninos_en_riesgo INT DEFAULT 0,
+    adultos_mayores_riesgo INT DEFAULT 0,
+    discapacitados_riesgo INT DEFAULT 0,
+    radio_analisis_metros NUMERIC(6,2) DEFAULT 25.0,
+
     -- Control Operativo y Diferenciación de Datos (RF-6)
     estado estado_incidente_enum NOT NULL DEFAULT 'PENDIENTE',
     es_simulacion BOOLEAN NOT NULL DEFAULT FALSE,
@@ -175,6 +195,14 @@ CREATE TABLE IF NOT EXISTS reportes_incidentes (
 );
 
 COMMENT ON TABLE reportes_incidentes IS 'Reportes emitidos por la ciudadanía desde la app móvil o web.';
+
+-- Asegurar compatibilidad en Aiven si la tabla reportes_incidentes ya existía previamente:
+ALTER TABLE reportes_incidentes ADD COLUMN IF NOT EXISTS personas_afectadas_estimadas INT DEFAULT 0;
+ALTER TABLE reportes_incidentes ADD COLUMN IF NOT EXISTS familias_en_perimetro INT DEFAULT 0;
+ALTER TABLE reportes_incidentes ADD COLUMN IF NOT EXISTS ninos_en_riesgo INT DEFAULT 0;
+ALTER TABLE reportes_incidentes ADD COLUMN IF NOT EXISTS adultos_mayores_riesgo INT DEFAULT 0;
+ALTER TABLE reportes_incidentes ADD COLUMN IF NOT EXISTS discapacitados_riesgo INT DEFAULT 0;
+ALTER TABLE reportes_incidentes ADD COLUMN IF NOT EXISTS radio_analisis_metros NUMERIC(6,2) DEFAULT 25.0;
 
 CREATE TABLE IF NOT EXISTS fotos_incidentes (
     id SERIAL PRIMARY KEY,
@@ -483,5 +511,14 @@ VALUES
     ST_GeomFromText('POLYGON((-79.6710 0.9320, -79.6650 0.9320, -79.6640 0.9260, -79.6700 0.9250, -79.6710 0.9320))', 4326)
 )
 ON CONFLICT DO NOTHING;
+
+-- 10.5 Familias Censadas Oficiales en Esmeraldas (Cálculo de Buffer 25m)
+INSERT INTO familias_censo (codigo_censo, jefe_familia_nombre, jefe_familia_cedula, telefono_contacto, canton, parroquia, barrio_sector, direccion_referencia, ubicacion_vivienda, numero_integrantes, ninos_menores_5, adultos_mayores, personas_discapacidad, danos_vivienda, requiere_evacuacion_inmediata)
+VALUES
+('CENSO-ESM-01', 'Carlos Minda Quiñónez', '0802134567', '0981122334', 'Esmeraldas', '5 de Agosto', 'El Cabezón / Acceso Principal', 'Junto a la ladera de entrada a Esmeraldas', ST_SetSRID(ST_Point(-79.67570, 0.92992), 4326), 5, 2, 1, 0, 'TOTAL', true),
+('CENSO-ESM-02', 'Lider Gomez Perlaza', '0802436912', '0915143485', 'Esmeraldas', '5 de Agosto', 'El Cabezón / Sector Curva', 'Calle principal acceso El Cabezón casa #12', ST_SetSRID(ST_Point(-79.67575, 0.92990), 4326), 4, 1, 1, 1, 'PARCIAL', true),
+('CENSO-ESM-03', 'Mariana Estupiñán Caicedo', '0801894562', '0993456781', 'Esmeraldas', '5 de Agosto', 'Las 50 Casas / Ribera Río Teaone', 'Manzana D Villa 14 Ribera Teaone', ST_SetSRID(ST_Point(-79.66750, 0.92850), 4326), 6, 3, 1, 0, 'PARCIAL', true),
+('CENSO-ESM-04', 'Rosaura Valencia Bone', '0803456128', '0987654129', 'Esmeraldas', 'Luis Tello', 'Isla Piedad', 'Sector Muelle Pesquero Ribera Baja', ST_SetSRID(ST_Point(-79.65820, 0.96810), 4326), 3, 0, 2, 1, 'LEVE', false)
+ON CONFLICT (codigo_censo) DO NOTHING;
 
 COMMIT;

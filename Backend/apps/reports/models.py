@@ -26,10 +26,18 @@ class ReporteIncidente(models.Model):
     ubicacion = models.PointField(srid=4326)
     precision_gps_metros = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     
-    # Estimación comunitaria
+    # Estimación comunitaria y cálculo geoespacial de buffer
     personas_atrapadas = models.IntegerField(default=0)
     familias_afectadas = models.IntegerField(default=0)
     estimacion_danos_vivienda = models.TextField(null=True, blank=True)
+
+    # Cálculo automático PostGIS por radio perimetral (Cruce con Familias Censadas)
+    personas_afectadas_estimadas = models.IntegerField(default=0)
+    familias_en_perimetro = models.IntegerField(default=0)
+    ninos_en_riesgo = models.IntegerField(default=0)
+    adultos_mayores_riesgo = models.IntegerField(default=0)
+    discapacitados_riesgo = models.IntegerField(default=0)
+    radio_analisis_metros = models.DecimalField(max_digits=6, decimal_places=2, default=25.00)
 
     # Estados y segregación
     estado = models.CharField(

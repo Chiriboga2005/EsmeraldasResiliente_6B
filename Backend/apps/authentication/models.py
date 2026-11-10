@@ -15,11 +15,15 @@ cedula_validator = RegexValidator(
 )
 
 class RolUsuario(models.TextChoices):
+    INVITADO = 'INVITADO', _('Invitado')
     CIUDADANO = 'CIUDADANO', _('Ciudadano')
+    DIGITALIZADOR = 'DIGITALIZADOR', _('Digitalizador Territorial')
+    OPERADOR = 'OPERADOR', _('Operador')
     OPERADOR_COE = 'OPERADOR_COE', _('Operador COE')
+    GESTOR = 'GESTOR', _('Gestor / Director COE')
+    ADMINISTRADOR = 'ADMINISTRADOR', _('Administrador')
     ANALISTA = 'ANALISTA', _('Analista de Riesgos')
     ASISTENCIA = 'ASISTENCIA', _('Personal de Asistencia')
-    ADMINISTRADOR = 'ADMINISTRADOR', _('Administrador')
 
 class UsuarioManager(BaseUserManager):
     """

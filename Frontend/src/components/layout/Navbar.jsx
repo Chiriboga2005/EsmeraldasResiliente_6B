@@ -96,12 +96,18 @@ export const Navbar = ({ onToggleSidebar, isSidebarOpen }) => {
               <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
                 {user?.nombre_completo || user?.first_name || user?.username || user?.telefono || 'Usuario'}
               </p>
-              <span className={`text-[9px] uppercase font-bold px-1.5 py-0.2 rounded border ${
-                (user?.rol === 'ADMINISTRADOR' || user?.username === 'admin')
+              <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${
+                (user?.rol === 'GESTOR')
+                  ? 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30'
+                  : (user?.rol === 'ADMINISTRADOR' || user?.username === 'admin')
                   ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30'
-                  : 'bg-sky-100 text-sky-900 border-sky-300 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20'
+                  : (user?.rol === 'DIGITALIZADOR')
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
+                  : (user?.rol === 'OPERADOR' || user?.rol === 'OPERADOR_COE')
+                  ? 'bg-sky-100 text-sky-900 border-sky-300 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/30'
+                  : 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-crisis-700 dark:text-slate-300 dark:border-crisis-600'
               }`}>
-                {user?.rol || (user?.username === 'admin' ? 'ADMINISTRADOR' : 'OPERADOR')}
+                {user?.rol || (user?.username === 'admin' ? 'ADMINISTRADOR' : 'CIUDADANO')}
               </span>
             </div>
             <button
