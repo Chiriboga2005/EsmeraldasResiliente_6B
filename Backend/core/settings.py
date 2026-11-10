@@ -168,10 +168,14 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ------------------------------------------------------------------------------
-# DJANGO REST FRAMEWORK Y AUTENTICACIÓN JWT
+# DJANGO REST FRAMEWORK Y AUTENTICACIÓN HÍBRIDA (KEYCLOAK OIDC + SIMPLE_JWT)
 # ------------------------------------------------------------------------------
+KEYCLOAK_URL = os.getenv('KEYCLOAK_URL', '').rstrip('/')
+KEYCLOAK_REALM = os.getenv('KEYCLOAK_REALM', 'esmeraldas-resiliente')
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'apps.authentication.keycloak_auth.KeycloakOrJWTAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),

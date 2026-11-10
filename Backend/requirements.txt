@@ -5,6 +5,7 @@ djangorestframework-gis>=1.1
 django-cors-headers>=4.4.0
 django-filter>=24.3
 djangorestframework-simplejwt>=5.3.1
+cryptography>=43.0.0
 
 # Conector de Base de Datos Espacial PostgreSQL (PostGIS)
 psycopg2-binary>=2.9.9

@@ -214,3 +214,4 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"Familia censada actualizada: {fam.codigo_censo}"))
 
         self.stdout.write(self.style.SUCCESS("Poblado de datos Hackathon completado con éxito."))
+

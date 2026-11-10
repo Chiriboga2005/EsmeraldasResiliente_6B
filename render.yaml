@@ -31,3 +31,7 @@ services:
         value: "0.9681"
       - key: ESMERALDAS_LON
         value: "-79.6582"
+      - key: KEYCLOAK_URL
+        value: ""
+      - key: KEYCLOAK_REALM
+        value: "esmeraldas-resiliente"
