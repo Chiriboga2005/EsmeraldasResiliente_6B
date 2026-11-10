@@ -488,8 +488,22 @@ export const CrisisRoomPage = () => {
 
   // Apertura controlada por una sola vez del popup del incidente enfocado (evita que se quede bloqueado al cerrar)
   useEffect(() => {
+    // Interceptar clics en el botón de cerrar 'x' de Leaflet para evitar hash '#close' y briqueo de navegación
+    const handlePopupCloseClick = (e) => {
+      const closeBtn = e.target.closest('.leaflet-popup-close-button');
+      if (closeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedIncidentId(null);
+        if (searchParams.get('focusIncident')) {
+          navigate('/', { replace: true });
+        }
+      }
+    };
+    document.addEventListener('click', handlePopupCloseClick, true);
+
     const focusIncidentId = searchParams.get('focusIncident');
-    if (!focusIncidentId) return;
+    if (!focusIncidentId) return () => document.removeEventListener('click', handlePopupCloseClick, true);
 
     if (openedFocusIncidentRef.current !== focusIncidentId) {
       const marker = incidentMarkerRefs.current[focusIncidentId];
@@ -500,9 +514,14 @@ export const CrisisRoomPage = () => {
             marker.openPopup();
           } catch (e) {}
         }, 600);
-        return () => clearTimeout(timer);
+        return () => {
+          clearTimeout(timer);
+          document.removeEventListener('click', handlePopupCloseClick, true);
+        };
       }
     }
+
+    return () => document.removeEventListener('click', handlePopupCloseClick, true);
   }, [searchParams, activeIncidentFeatures]);
 
   // Línea de tiempo interactiva (MSN El Tiempo Timeline)

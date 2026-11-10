@@ -10,7 +10,9 @@ services:
       KC_DB_USERNAME: ${AIVEN_DB_USER:-avnadmin}
       KC_DB_PASSWORD: ${AIVEN_DB_PASSWORD}
 
-      # Credenciales del Administrador Maestro
+      # Credenciales del Administrador Maestro (Keycloak 24+)
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-Esmeraldas2026*}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-Esmeraldas2026*}
 
