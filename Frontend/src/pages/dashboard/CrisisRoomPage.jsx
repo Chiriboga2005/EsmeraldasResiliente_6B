@@ -1666,7 +1666,7 @@ export const CrisisRoomPage = () => {
                 </div>
 
                 {/* Métricas en Tiempo Real (Resaltando el modo meteorológico seleccionado) */}
-                <div className="flex items-center gap-1.5 text-xs">
+                <div className="flex items-center gap-1.5 text-xs overflow-x-auto max-w-full pb-0.5">
                   {/* Temp */}
                   <div className={`px-2 py-1 rounded-lg border transition ${
                     weatherMode === 'temp'

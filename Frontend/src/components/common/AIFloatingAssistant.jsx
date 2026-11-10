@@ -13,22 +13,366 @@ import {
   HelpCircle,
   MessageSquare,
   Flame,
-  CheckCircle2
+  CheckCircle2,
+  Maximize2,
+  Minimize2,
+  Copy,
+  Check,
+  BarChart3,
+  Download,
+  AlertTriangle,
+  Compass,
+  Building2,
+  Activity,
+  Layers
 } from 'lucide-react';
 import { aiApi } from '../../api/aiApi';
 
+// ============================================================================
+// COMPONENTE PARA PARSEAR Y FORMATEAR MARKDOWN ENRIQUECIDO DE MANERA NATIVA
+// ============================================================================
+const renderInlineMarkdown = (str) => {
+  if (!str) return null;
+  const parts = [];
+  const tokenRegex = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  let lastIdx = 0;
+  let match;
+
+  while ((match = tokenRegex.exec(str)) !== null) {
+    if (match.index > lastIdx) {
+      parts.push(str.substring(lastIdx, match.index));
+    }
+    const token = match[0];
+    if (token.startsWith('`') && token.endsWith('`')) {
+      parts.push(
+        <code key={match.index} className="px-1.5 py-0.5 mx-0.5 rounded bg-slate-950/90 text-sky-300 font-mono text-[11px] border border-slate-700/80 shadow-inner">
+          {token.slice(1, -1)}
+        </code>
+      );
+    } else if (token.startsWith('**') && token.endsWith('**')) {
+      parts.push(
+        <strong key={match.index} className="font-bold text-white tracking-wide">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    } else if (token.startsWith('*') && token.endsWith('*')) {
+      parts.push(
+        <em key={match.index} className="italic text-slate-300">
+          {token.slice(1, -1)}
+        </em>
+      );
+    }
+    lastIdx = tokenRegex.lastIndex;
+  }
+
+  if (lastIdx < str.length) {
+    parts.push(str.substring(lastIdx));
+  }
+  return parts;
+};
+
+const FormattedAssistantMessage = ({ text }) => {
+  if (!text) return null;
+  const lines = text.split('\n');
+  const elements = [];
+  let inCodeBlock = false;
+  let codeBlockLines = [];
+  let codeLang = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const trimmed = rawLine.trim();
+
+    // Bloque de código triple backtick
+    if (trimmed.startsWith('```')) {
+      if (inCodeBlock) {
+        // Cierre de bloque de código
+        elements.push(
+          <div key={`codeblock-${i}`} className="my-2 rounded-xl bg-slate-950 p-3 border border-slate-800 font-mono text-[11px] text-sky-300 overflow-x-auto shadow-inner">
+            {codeLang && (
+              <div className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-1 border-b border-slate-800 pb-1">
+                {codeLang}
+              </div>
+            )}
+            <pre className="whitespace-pre">{codeBlockLines.join('\n')}</pre>
+          </div>
+        );
+        inCodeBlock = false;
+        codeBlockLines = [];
+        codeLang = '';
+      } else {
+        // Apertura
+        inCodeBlock = true;
+        codeLang = trimmed.replace('```', '').trim();
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeBlockLines.push(rawLine);
+      continue;
+    }
+
+    // Línea vacía
+    if (!trimmed) {
+      elements.push(<div key={`empty-${i}`} className="h-1.5" />);
+      continue;
+    }
+
+    // Nota de Rigor Científico (Banner especial)
+    if (trimmed.startsWith('*Nota de Rigor Científico') || trimmed.includes('Rigor Científico:')) {
+      elements.push(
+        <div key={`disclaimer-${i}`} className="mt-3 p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-[10.5px] text-indigo-200/90 flex items-start gap-2">
+          <ShieldAlert className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+          <div className="leading-snug">
+            {renderInlineMarkdown(trimmed)}
+          </div>
+        </div>
+      );
+      continue;
+    }
+
+    // Encabezados
+    if (trimmed.startsWith('### ')) {
+      elements.push(
+        <h4 key={`h4-${i}`} className="text-xs font-black text-sky-300 mt-2.5 mb-1 tracking-wide flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+          {renderInlineMarkdown(trimmed.replace('### ', ''))}
+        </h4>
+      );
+      continue;
+    }
+    if (trimmed.startsWith('## ')) {
+      elements.push(
+        <h3 key={`h3-${i}`} className="text-sm font-black text-white mt-3 mb-1.5 tracking-wide flex items-center gap-1.5 border-b border-slate-700/60 pb-1">
+          <BrainCircuit className="w-4 h-4 text-sky-400" />
+          {renderInlineMarkdown(trimmed.replace('## ', ''))}
+        </h3>
+      );
+      continue;
+    }
+
+    // Listas ordenadas (1., 2., etc.)
+    const orderedMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+    if (orderedMatch) {
+      elements.push(
+        <div key={`ordered-${i}`} className="flex items-start gap-2 my-1 text-[11.5px] pl-1">
+          <span className="w-4 h-4 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+            {orderedMatch[1]}
+          </span>
+          <div className="flex-1 text-slate-200 leading-relaxed">
+            {renderInlineMarkdown(orderedMatch[2])}
+          </div>
+        </div>
+      );
+      continue;
+    }
+
+    // Viñetas no ordenadas (- o * o •)
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ')) {
+      const content = trimmed.substring(2);
+      elements.push(
+        <div key={`bullet-${i}`} className="flex items-start gap-2 my-1 text-[11.5px] pl-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0 mt-1.5 shadow-sm shadow-sky-400/50" />
+          <div className="flex-1 text-slate-200 leading-relaxed">
+            {renderInlineMarkdown(content)}
+          </div>
+        </div>
+      );
+      continue;
+    }
+
+    // Párrafo normal
+    elements.push(
+      <p key={`p-${i}`} className="text-[11.5px] text-slate-200 leading-relaxed my-0.5">
+        {renderInlineMarkdown(trimmed)}
+      </p>
+    );
+  }
+
+  return <div className="space-y-0.5">{elements}</div>;
+};
+
+// ============================================================================
+// COMPONENTE DE TARJETAS KPI DE METADATOS / CONTEXTO ESTRUCTURADO
+// ============================================================================
+const ContextDataBadges = ({ datos }) => {
+  if (!datos || typeof datos !== 'object') return null;
+
+  // 1. Caso: Métricas de Machine Learning (Scikit-Learn)
+  if (datos.tipo === 'ml_metricas') {
+    return (
+      <div className="mt-2.5 p-2.5 rounded-xl bg-slate-950/70 border border-indigo-500/30 space-y-2">
+        <div className="flex items-center justify-between text-[10px] font-bold text-indigo-300 uppercase tracking-wider">
+          <span className="flex items-center gap-1">
+            <BarChart3 className="w-3.5 h-3.5 text-indigo-400" />
+            Panel Scikit-Learn • Evaluación Empírica
+          </span>
+          <span className="bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/40">
+            {datos.algoritmo || 'Random Forest'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-center">
+          <div className="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+            <div className="text-[9px] text-slate-400">Exactitud Test</div>
+            <div className="text-xs font-black text-emerald-400">{datos.exactitud_pct}%</div>
+          </div>
+          <div className="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+            <div className="text-[9px] text-slate-400">F1-Score</div>
+            <div className="text-xs font-black text-indigo-400">{datos.f1_score_pct}%</div>
+          </div>
+          <div className="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+            <div className="text-[9px] text-slate-400">Muestras</div>
+            <div className="text-xs font-black text-sky-400">{datos.total_muestras}</div>
+          </div>
+          <div className="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+            <div className="text-[9px] text-slate-400">5-Fold CV</div>
+            <div className="text-xs font-black text-teal-400">{datos.validacion_cruzada_5f}</div>
+          </div>
+        </div>
+
+        {Array.isArray(datos.top_features) && datos.top_features.length > 0 && (
+          <div className="pt-1 border-t border-slate-800/80">
+            <div className="text-[9px] text-slate-400 font-semibold mb-1">
+              Top Características Determinantes (Feature Importance):
+            </div>
+            <div className="space-y-1">
+              {datos.top_features.slice(0, 3).map((f, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-[10px]">
+                  <span className="w-28 truncate text-slate-300">{f.nombre}:</span>
+                  <div className="flex-1 bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-800">
+                    <div
+                      className="bg-gradient-to-r from-indigo-500 to-sky-400 h-full rounded-full"
+                      style={{ width: `${Math.min(100, f.peso * 2.2)}%` }}
+                    />
+                  </div>
+                  <span className="font-mono text-sky-300 font-bold text-[9px] w-9 text-right">{f.peso}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 2. Caso: Simulación Hidrológica
+  if (datos.tipo === 'simulacion') {
+    return (
+      <div className="mt-2.5 p-2.5 rounded-xl bg-slate-950/70 border border-sky-500/30 space-y-2">
+        <div className="flex items-center justify-between text-[10px] font-bold text-sky-300 uppercase tracking-wider">
+          <span className="flex items-center gap-1">
+            <Compass className="w-3.5 h-3.5 text-sky-400" />
+            Parámetros Hidrométricos Proyectados
+          </span>
+          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+            datos.nivel_rio_teaone_m >= datos.cota_critica_m
+              ? 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse'
+              : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+          }`}>
+            Alerta {datos.alerta_global}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-center">
+          <div className="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+            <div className="text-[9px] text-slate-400">Precipitación 24h</div>
+            <div className="text-xs font-black text-sky-400">{datos.lluvia_24h_mm} mm</div>
+          </div>
+          <div className="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+            <div className="text-[9px] text-slate-400">Nivel Proyectado</div>
+            <div className="text-xs font-black text-cyan-300">{datos.nivel_rio_teaone_m} m</div>
+          </div>
+          <div className="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+            <div className="text-[9px] text-slate-400">Cota Desborde</div>
+            <div className="text-xs font-black text-red-400">{datos.cota_critica_m} m</div>
+          </div>
+          <div className="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+            <div className="text-[9px] text-slate-400">Familias Riesgo</div>
+            <div className="text-xs font-black text-amber-400">{datos.total_familias_en_riesgo}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Caso: Red de Albergues
+  if (datos.tipo === 'albergues' && Array.isArray(datos.albergues)) {
+    return (
+      <div className="mt-2.5 p-2 rounded-xl bg-slate-950/70 border border-emerald-500/30 space-y-1.5">
+        <div className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1">
+          <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+          Red de Albergues COE • Capacidad Segura ({datos.capacidad_familias} Familias)
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+          {datos.albergues.map((a, i) => (
+            <div key={i} className="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800 text-[10px]">
+              <div className="font-bold text-white truncate">{a.nombre}</div>
+              <div className="text-slate-400 text-[9px]">Capacidad: <span className="text-emerald-300 font-bold">{a.capacidad_familias || a.capacidad} fam</span></div>
+              <div className="text-slate-400 text-[9px]">Cota: <span className="text-sky-300">{a.cota}</span></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // 4. Caso: Motor Espacial PostGIS
+  if (datos.tipo === 'postgis') {
+    return (
+      <div className="mt-2.5 p-2 rounded-xl bg-slate-950/70 border border-purple-500/30 flex items-center justify-between text-[10.5px]">
+        <div className="flex items-center gap-1.5 text-purple-300 font-bold">
+          <Layers className="w-3.5 h-3.5 text-purple-400" />
+          <span>Buffer: {datos.radio_metros}m</span>
+        </div>
+        <div className="text-slate-400 text-[10px]">Función: <code className="text-sky-300 font-mono text-[9px]">ST_DWithin</code></div>
+        <div className="bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded text-[9px] font-bold">
+          {datos.indice || 'GIST Espacial'}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+// ============================================================================
+// COMPONENTE PRINCIPAL: ASISTENTE FLOTANTE DE IA PREDICTIVA
+// ============================================================================
 export const AIFloatingAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'history'
-  const [messages, setMessages] = useState([
-    {
-      id: 'welcome',
-      sender: 'ai',
-      text: '👋 ¡Hola! Soy el **Asistente de Inteligencia Artificial del COE Cantonal**.\n\nPuedes consultarme sobre **simulaciones de desborde del Río Teaone**, **índice de recurrencia por sectores**, **clasificación de triage con Scikit-learn** o **tendencias del Fenómeno El Niño**.\n\n*Todas tus consultas se almacenan en el historial de la base de datos PostgreSQL.*',
-      categoria: 'GENERAL',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
+  const [copiedId, setCopiedId] = useState(null);
+
+  const initialWelcomeMessage = {
+    id: 'welcome',
+    sender: 'ai',
+    text: `👋 ¡Hola! Soy el **Asistente de Inteligencia Artificial del COE Cantonal de Esmeraldas**.
+
+Estoy entrenado con modelos de **Machine Learning (Scikit-Learn)** y conectado a la base geoespacial **PostGIS**. Puedes consultarme en cualquier momento sobre:
+
+- 🌊 **Simulaciones Hidrológicas:** Crecidas proyectadas del Río Teaone ante precipitaciones de 120 mm o más.
+- 🤖 **Métricas del Modelo ML:** Exactitud (99.17%), F1-Score (99.19%) y arquitectura Random Forest.
+- 📍 **Recurrencia Histórica:** Sectores críticos (50 Casas, Propicia 1 y 2, Isla Piedad).
+- 🏕️ **Red de Albergues:** Capacidad del Coliseo Nubia Villacís y protocolo de evacuación.
+- 🛰️ **Buffer PostGIS 25m:** Mecánica de cálculo demográfico en tiempo real.
+
+*Nota de Rigor Científico (UTLVTE 2026): Modelos analíticos desarrollados con Python 3.13 y Scikit-learn para soporte a la toma de decisiones.*`,
+    categoria: 'GENERAL',
+    datos: {
+      tipo: 'ml_metricas',
+      algoritmo: 'Random Forest Classifier',
+      exactitud_pct: 99.17,
+      f1_score_pct: 99.19,
+      total_muestras: 1200,
+      validacion_cruzada_5f: '99.08% ± 0.49%'
+    },
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  };
+
+  const [messages, setMessages] = useState([initialWelcomeMessage]);
   const [inputQuestion, setInputQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [historyList, setHistoryList] = useState([]);
@@ -44,9 +388,9 @@ export const AIFloatingAssistant = () => {
     if (isOpen && activeTab === 'chat') {
       scrollToBottom();
     }
-  }, [messages, isOpen, activeTab]);
+  }, [messages, isOpen, activeTab, loading]);
 
-  // Cargar historial de la base de datos al abrir o cambiar de tab
+  // Cargar historial de la base de datos PostgreSQL
   const loadHistory = async () => {
     setLoadingHistory(true);
     try {
@@ -69,7 +413,6 @@ export const AIFloatingAssistant = () => {
     const textToSend = questionText || inputQuestion;
     if (!textToSend.trim() || loading) return;
 
-    // Agregar mensaje del usuario a la vista
     const userMsg = {
       id: `user-${Date.now()}`,
       sender: 'user',
@@ -99,7 +442,7 @@ export const AIFloatingAssistant = () => {
         {
           id: `err-${Date.now()}`,
           sender: 'ai',
-          text: '⚠️ Ocurrió un error al procesar la consulta con los modelos analíticos. Por favor, reintenta en unos instantes.',
+          text: '⚠️ Ocurrió un error al procesar la consulta con los modelos analíticos. Por favor, verifica tu conexión o intenta nuevamente.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -108,8 +451,21 @@ export const AIFloatingAssistant = () => {
     }
   };
 
+  const handleCopyMessage = (id, text) => {
+    if (!navigator.clipboard) return;
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleClearChat = () => {
+    if (window.confirm('¿Deseas reiniciar la conversación en pantalla?')) {
+      setMessages([initialWelcomeMessage]);
+    }
+  };
+
   const handleClearHistory = async () => {
-    if (window.confirm('¿Deseas vaciar el historial de consultas almacenado en la base de datos?')) {
+    if (window.confirm('¿Deseas vaciar el historial de consultas almacenado en la base de datos PostgreSQL?')) {
       try {
         await aiApi.borrarHistorial();
         setHistoryList([]);
@@ -119,21 +475,69 @@ export const AIFloatingAssistant = () => {
     }
   };
 
+  const handleExportConversation = () => {
+    const transcript = messages.map(m => `[${m.timestamp}] ${m.sender === 'user' ? 'OPERADOR' : 'ASISTENTE IA'}:\n${m.text}\n-------------------`).join('\n\n');
+    const blob = new Blob([transcript], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `informe_ia_coe_esmeraldas_${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Quick prompts organizados y categorizados
   const quickPrompts = [
-    { label: '🌊 Simulación Teaone (120 mm)', prompt: 'Simular crecida del Rio Teaone con 120 mm de lluvia' },
-    { label: '📍 Sectores con más recurrencia', prompt: '¿Cuáles son los sectores con mayor recurrencia histórica de inundaciones?' },
-    { label: '🤖 Triage ML (Derrumbe)', prompt: 'Clasificar prioridad de incidente con 3 personas atrapadas y 90 mm de lluvia' },
-    { label: '📈 Tendencia Fenómeno El Niño', prompt: '¿Cuál es la tendencia histórica del Fenómeno El Niño en Esmeraldas?' },
+    {
+      label: '🌊 Simulación Teaone (120 mm)',
+      prompt: 'Simular crecida del Rio Teaone con 120 mm de lluvia',
+      badge: 'Hidrología'
+    },
+    {
+      label: '🤖 Algoritmo ML & F1-Score',
+      prompt: '¿Cuáles son las métricas, exactitud y algoritmo del modelo Scikit-Learn?',
+      badge: 'Scikit-Learn'
+    },
+    {
+      label: '📍 Sectores con más recurrencia',
+      prompt: '¿Cuáles son los sectores con mayor recurrencia histórica de inundaciones?',
+      badge: 'GIS'
+    },
+    {
+      label: '🏕️ Albergues y Evacuación',
+      prompt: '¿Cuáles son los albergues oficiales habilitados y rutas de evacuación?',
+      badge: 'Humanitaria'
+    },
+    {
+      label: '🛰️ Motor PostGIS (Buffer 25m)',
+      prompt: '¿Cómo calcula el motor PostGIS el impacto a personas en el buffer de 25m?',
+      badge: 'PostgreSQL'
+    },
+    {
+      label: '🚨 Triage ML (Derrumbe)',
+      prompt: 'Clasificar prioridad de incidente con 3 personas atrapadas y 90 mm de lluvia',
+      badge: 'Priorización'
+    },
+    {
+      label: '📈 Fenómeno El Niño (ENSO)',
+      prompt: '¿Cuál es la tendencia histórica del Fenómeno El Niño en Esmeraldas?',
+      badge: 'Clima'
+    },
+    {
+      label: '📋 Fases de Alerta COE',
+      prompt: '¿Cuáles son las fases de alerta del COE Cantonal ante crecidas del río?',
+      badge: 'Protocolo'
+    }
   ];
 
   return (
     <>
-      {/* BOTÓN FLOTANTE TRIGGER (FIJO EN ESQUINA INFERIOR DERECHA) */}
+      {/* BOTÓN FLOTANTE TRIGGER FIJO EN ESQUINA INFERIOR DERECHA */}
       <div className="fixed bottom-3 right-3 z-[1200] flex items-center gap-2">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="group relative flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 hover:from-sky-500 hover:to-purple-500 text-white font-bold rounded-full shadow-2xl shadow-indigo-500/40 border border-white/20 transition-all duration-300 transform hover:scale-105 active:scale-95"
-          title="Abrir Asistente de IA Predictiva COE"
+          className="group relative flex items-center gap-2.5 px-4 py-2.5 bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 hover:from-sky-500 hover:to-purple-500 text-white font-bold rounded-full shadow-2xl shadow-indigo-500/40 border border-white/20 transition-all duration-300 transform hover:scale-105 active:scale-95"
+          title="Abrir Asistente de IA Predictiva COE Cantonal"
         >
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -142,40 +546,63 @@ export const AIFloatingAssistant = () => {
 
           <BrainCircuit className="w-4 h-4 text-sky-200 group-hover:rotate-12 transition-transform duration-300" />
           <span className="text-xs tracking-wide font-black uppercase">
-            IA Predictiva COE
+            IA PREDICTIVA COE
           </span>
         </button>
       </div>
 
       {/* VENTANA MODAL / PANEL DE CONSULTAS DE IA */}
       {isOpen && (
-        <div className="fixed bottom-16 right-2 sm:right-4 z-[1200] w-[calc(100vw-1rem)] sm:w-[480px] max-h-[82vh] h-[580px] flex flex-col bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
-          
+        <div
+          className={`fixed z-[1200] flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/90 overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-5 ${
+            isMaximized
+              ? 'bottom-4 right-4 left-4 top-16 sm:left-auto sm:top-12 sm:w-[860px] sm:h-[84vh] max-w-5xl'
+              : 'bottom-16 right-2 sm:right-4 w-[calc(100vw-1rem)] sm:w-[500px] h-[610px] max-h-[85vh]'
+          }`}
+        >
           {/* HEADER DEL ASISTENTE */}
-          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-slate-800 p-3.5 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
+          <div className="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-950 border-b border-slate-800 p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md shrink-0">
                 <BrainCircuit className="w-5 h-5" />
               </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className="font-bold text-white text-xs tracking-wide">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-white text-xs sm:text-sm tracking-wide truncate">
                     Asistente de IA • COE Esmeraldas
                   </h3>
-                  <span className="text-[9px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.2 rounded font-semibold">
-                    Scikit-Learn
+                  <span className="text-[9px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded font-mono font-bold shrink-0">
+                    Scikit-Learn 1.9
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400">
-                  Modelos predictivos y análisis de riesgos preventivos
+                <p className="text-[10px] text-slate-400 truncate">
+                  Modelos predictivos • Simulación fluvial • Análisis PostGIS
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            {/* BOTONES DE ACCIÓN RÁPIDA EN EL HEADER */}
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={handleExportConversation}
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                title="Descargar informe de la sesión"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => setIsMaximized(!isMaximized)}
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition hidden sm:inline-flex"
+                title={isMaximized ? 'Restaurar tamaño normal' : 'Maximizar ventana'}
+              >
+                {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                title="Cerrar ventana"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -183,108 +610,171 @@ export const AIFloatingAssistant = () => {
           </div>
 
           {/* TABS SELECTOR (CHAT VS HISTORIAL EN BD) */}
-          <div className="flex bg-slate-950/80 border-b border-slate-800 px-3 pt-1.5 text-xs font-semibold">
-            <button
-              onClick={() => setActiveTab('chat')}
-              className={`flex items-center gap-1.5 px-3 py-2 border-b-2 transition ${
-                activeTab === 'chat'
-                  ? 'border-sky-500 text-sky-400 font-bold'
-                  : 'border-transparent text-slate-400 hover:text-white'
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Consultas en Vivo</span>
-            </button>
+          <div className="flex items-center justify-between bg-slate-950/90 border-b border-slate-800 px-3 text-xs font-semibold">
+            <div className="flex">
+              <button
+                onClick={() => setActiveTab('chat')}
+                className={`flex items-center gap-1.5 px-3 py-2 border-b-2 transition ${
+                  activeTab === 'chat'
+                    ? 'border-sky-500 text-sky-400 font-bold'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Consultas en Vivo</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`flex items-center gap-1.5 px-3 py-2 border-b-2 transition ${
-                activeTab === 'history'
-                  ? 'border-sky-500 text-sky-400 font-bold'
-                  : 'border-transparent text-slate-400 hover:text-white'
-              }`}
-            >
-              <History className="w-3.5 h-3.5" />
-              <span>Historial en BD ({historyList.length})</span>
-            </button>
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`flex items-center gap-1.5 px-3 py-2 border-b-2 transition ${
+                  activeTab === 'history'
+                    ? 'border-sky-500 text-sky-400 font-bold'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                <History className="w-3.5 h-3.5" />
+                <span>Historial en BD ({historyList.length})</span>
+              </button>
+            </div>
+
+            {activeTab === 'chat' && (
+              <button
+                onClick={handleClearChat}
+                className="text-[10px] text-slate-400 hover:text-red-400 flex items-center gap-1 py-1 px-1.5 rounded hover:bg-slate-800/60 transition"
+                title="Reiniciar chat en pantalla"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span className="hidden sm:inline">Limpiar</span>
+              </button>
+            )}
           </div>
 
-          {/* CONTENIDO DEL TAB: CHAT */}
+          {/* ================================================================ */}
+          {/* TAB 1: CONSULTAS EN VIVO (CHAT INTERACTIVO) */}
+          {/* ================================================================ */}
           {activeTab === 'chat' && (
             <div className="flex-1 flex flex-col min-h-0 bg-slate-900/60">
               
-              {/* LISTA DE MENSAJES */}
-              <div className="flex-1 overflow-y-auto p-3.5 space-y-3 text-xs">
+              {/* CONTENEDOR DE MENSAJES CON SCROLL */}
+              <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 text-xs">
                 {messages.map((m) => (
                   <div
                     key={m.id}
                     className={`flex flex-col ${m.sender === 'user' ? 'items-end' : 'items-start'}`}
                   >
                     <div
-                      className={`max-w-[88%] rounded-2xl p-3 shadow-md whitespace-pre-wrap leading-relaxed ${
+                      className={`relative group max-w-[92%] sm:max-w-[85%] rounded-2xl p-3.5 shadow-md ${
                         m.sender === 'user'
-                          ? 'bg-sky-600 text-white rounded-br-none'
-                          : 'bg-slate-800/90 text-slate-200 border border-slate-700/80 rounded-bl-none'
+                          ? 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white rounded-br-none shadow-sky-950/40'
+                          : 'bg-slate-850 bg-slate-800/90 text-slate-200 border border-slate-700/80 rounded-bl-none shadow-black/40'
                       }`}
                     >
-                      {m.sender === 'ai' && m.categoria && (
-                        <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-slate-700/60 text-[10px] text-sky-300 font-mono">
-                          <Sparkles className="w-3 h-3 text-sky-400" />
-                          <span>Módulo: {m.categoria}</span>
+                      {/* Cabecera del mensaje de IA */}
+                      {m.sender === 'ai' && (
+                        <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-slate-700/60 text-[10px] text-sky-300">
+                          <div className="flex items-center gap-1.5 font-mono">
+                            <Sparkles className="w-3 h-3 text-sky-400 shrink-0" />
+                            <span className="uppercase font-bold tracking-wider">
+                              Módulo: {m.categoria || 'GENERAL'}
+                            </span>
+                          </div>
+
+                          <button
+                            onClick={() => handleCopyMessage(m.id, m.text)}
+                            className="text-slate-400 hover:text-white flex items-center gap-1 text-[9px] bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-700/60 transition"
+                            title="Copiar texto"
+                          >
+                            {copiedId === m.id ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-400" />
+                                <span className="text-emerald-400 font-bold">Copiado</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                <span>Copiar</span>
+                              </>
+                            )}
+                          </button>
                         </div>
                       )}
-                      
-                      <div className="text-[12px]">
-                        {m.text}
-                      </div>
 
-                      <div className={`mt-1.5 text-[9px] text-right ${m.sender === 'user' ? 'text-sky-200' : 'text-slate-400'}`}>
+                      {/* Renderizado de texto formateado (Markdown parseado) */}
+                      {m.sender === 'user' ? (
+                        <div className="text-[12px] font-medium leading-relaxed whitespace-pre-wrap">
+                          {m.text}
+                        </div>
+                      ) : (
+                        <FormattedAssistantMessage text={m.text} />
+                      )}
+
+                      {/* Badges de métricas estructuradas */}
+                      {m.sender === 'ai' && m.datos && (
+                        <ContextDataBadges datos={m.datos} />
+                      )}
+
+                      {/* Timestamp */}
+                      <div className={`mt-2 text-[9px] text-right font-mono ${
+                        m.sender === 'user' ? 'text-sky-200/80' : 'text-slate-400'
+                      }`}>
                         {m.timestamp}
                       </div>
                     </div>
                   </div>
                 ))}
 
+                {/* Loading spinner durante inferencia */}
                 {loading && (
-                  <div className="flex items-center gap-2 text-xs text-sky-400 bg-slate-800/60 border border-slate-700 p-2.5 rounded-xl w-fit">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Ejecutando inferencia con Scikit-learn y consultando PostGIS...</span>
+                  <div className="flex items-center gap-2.5 text-xs text-sky-400 bg-slate-800/90 border border-slate-700 p-3 rounded-2xl w-fit shadow-lg animate-pulse">
+                    <RefreshCw className="w-4 h-4 animate-spin text-sky-400" />
+                    <span>Ejecutando inferencia con <strong>Scikit-Learn</strong> y consultando <strong>PostGIS</strong>...</span>
                   </div>
                 )}
+
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* QUICK PROMPTS (PREGUNTAS SUGERIDAS) */}
-              <div className="px-3 py-2 bg-slate-950/50 border-t border-slate-800/60 flex items-center gap-1.5 overflow-x-auto text-[11px]">
-                {quickPrompts.map((qp, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleSend(qp.prompt)}
-                    disabled={loading}
-                    className="shrink-0 bg-slate-800 hover:bg-slate-700 hover:text-white text-slate-300 px-2.5 py-1 rounded-full border border-slate-700/80 transition shadow-sm"
-                  >
-                    {qp.label}
-                  </button>
-                ))}
+              {/* BARRA DE PREGUNTAS SUGERIDAS (QUICK PROMPTS PILLS) */}
+              <div className="px-3 py-2 bg-slate-950/80 border-t border-slate-800/80">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                  <HelpCircle className="w-3 h-3 text-sky-400" />
+                  <span>Preguntas Frecuentes y Evaluaciones del Jurado:</span>
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] no-scrollbar">
+                  {quickPrompts.map((qp, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSend(qp.prompt)}
+                      disabled={loading}
+                      className="shrink-0 group flex items-center gap-1.5 bg-slate-850 bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1 rounded-full border border-slate-700/80 transition shadow-sm active:scale-95 disabled:opacity-50"
+                      title={qp.prompt}
+                    >
+                      <span className="font-medium">{qp.label}</span>
+                      <span className="text-[8.5px] bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/20 px-1 py-0.2 rounded font-mono font-semibold">
+                        {qp.badge}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* CAJA DE ENTRADA DE CONSULTA */}
+              {/* CAJA DE ENTRADA DE TEXTO / PROMPT */}
               <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center gap-2">
                 <input
                   type="text"
                   value={inputQuestion}
                   onChange={(e) => setInputQuestion(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Pregúntale a la IA (ej: simulación 120mm, sectores en riesgo)..."
-                  className="flex-1 bg-slate-800/90 text-white placeholder-slate-400 text-xs px-3.5 py-2.5 rounded-xl border border-slate-700 focus:outline-none focus:border-sky-500 transition"
+                  placeholder="Pregúntale a la IA (ej: simulación 120mm, métricas scikit-learn, albergues)..."
+                  className="flex-1 bg-slate-850 bg-slate-900 text-white placeholder-slate-400 text-xs px-3.5 py-2.5 rounded-xl border border-slate-700 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition shadow-inner"
                   disabled={loading}
                 />
 
                 <button
                   onClick={() => handleSend()}
                   disabled={loading || !inputQuestion.trim()}
-                  className="bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white p-2.5 rounded-xl shadow-md transition"
-                  title="Enviar consulta"
+                  className="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 disabled:opacity-40 text-white p-2.5 rounded-xl shadow-md transition transform active:scale-95 shrink-0"
+                  title="Enviar consulta a la IA"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -293,7 +783,9 @@ export const AIFloatingAssistant = () => {
             </div>
           )}
 
-          {/* CONTENIDO DEL TAB: HISTORIAL EN BASE DE DATOS */}
+          {/* ================================================================ */}
+          {/* TAB 2: HISTORIAL EN BASE DE DATOS POSTGRESQL */}
+          {/* ================================================================ */}
           {activeTab === 'history' && (
             <div className="flex-1 flex flex-col min-h-0 bg-slate-900/60 p-3.5">
               <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
@@ -305,22 +797,22 @@ export const AIFloatingAssistant = () => {
                   <button
                     onClick={loadHistory}
                     disabled={loadingHistory}
-                    className="p-1.5 text-slate-400 hover:text-white bg-slate-800 rounded border border-slate-700"
+                    className="p-1.5 text-slate-400 hover:text-white bg-slate-800 rounded-lg border border-slate-700 transition"
                     title="Actualizar historial"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${loadingHistory ? 'animate-spin' : ''}`} />
                   </button>
                   <button
                     onClick={handleClearHistory}
-                    className="p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 rounded border border-red-500/20"
-                    title="Borrar historial"
+                    className="p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 rounded-lg border border-red-500/20 transition"
+                    title="Borrar historial completo"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-2.5 text-xs">
+              <div className="flex-1 overflow-y-auto space-y-2.5 text-xs pr-1">
                 {historyList.length === 0 ? (
                   <div className="text-center py-12 text-slate-400 text-xs space-y-2">
                     <History className="w-8 h-8 mx-auto text-slate-600" />
@@ -331,10 +823,10 @@ export const AIFloatingAssistant = () => {
                   historyList.map((item) => (
                     <div
                       key={item.id}
-                      className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3 space-y-1.5 hover:border-slate-600 transition"
+                      className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3 space-y-2 hover:border-slate-600 transition shadow-sm"
                     >
                       <div className="flex items-center justify-between text-[10px] text-slate-400">
-                        <span className="font-semibold text-sky-400 uppercase tracking-wider">
+                        <span className="font-semibold text-sky-400 uppercase tracking-wider font-mono">
                           {item.categoria}
                         </span>
                         <span>{new Date(item.fecha_creacion).toLocaleString()}</span>
@@ -344,8 +836,11 @@ export const AIFloatingAssistant = () => {
                         {item.pregunta}
                       </p>
 
-                      <div className="text-[11px] text-slate-300 whitespace-pre-wrap bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
-                        {item.respuesta}
+                      <div className="text-[11px] text-slate-300 bg-slate-950/70 p-2.5 rounded-lg border border-slate-800">
+                        <FormattedAssistantMessage text={item.respuesta} />
+                        {item.datos_contexto && (
+                          <ContextDataBadges datos={item.datos_contexto} />
+                        )}
                       </div>
 
                       <button
@@ -353,7 +848,7 @@ export const AIFloatingAssistant = () => {
                           setActiveTab('chat');
                           handleSend(item.pregunta);
                         }}
-                        className="text-[10px] text-sky-400 hover:underline flex items-center gap-1 pt-1 font-semibold"
+                        className="text-[10.5px] text-sky-400 hover:underline flex items-center gap-1 pt-1 font-semibold"
                       >
                         <span>Re-ejecutar simulación</span>
                         <ChevronRight className="w-3 h-3" />
@@ -370,5 +865,5 @@ export const AIFloatingAssistant = () => {
     </>
   );
 };
-export default AIFloatingAssistant;
 
+export default AIFloatingAssistant;
