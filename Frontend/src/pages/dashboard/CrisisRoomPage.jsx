@@ -421,6 +421,8 @@ export const CrisisRoomPage = () => {
   // Estado de incidentes comunitarios en vivo (Aiven PostgreSQL)
   const [incidentesData, setIncidentesData] = useState(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState(null);
+  const incidentMarkerRefs = useRef({});
+  const openedFocusIncidentRef = useRef(null);
 
   // Capas territoriales conmutables
   const [layers, setLayers] = useState({
@@ -477,12 +479,29 @@ export const CrisisRoomPage = () => {
       const lon = parseFloat(focusLon);
       if (!isNaN(lat) && !isNaN(lon)) {
         setTargetFly({ lat, lon, zoom: 17, ts: Date.now() });
-        if (focusIncidentId) {
-          setSelectedIncidentId(String(focusIncidentId));
-        }
+        setSelectedIncidentId(String(focusIncidentId));
       }
     }
   }, [searchParams]);
+
+  // Apertura controlada por una sola vez del popup del incidente enfocado (evita que se quede bloqueado al cerrar)
+  useEffect(() => {
+    const focusIncidentId = searchParams.get('focusIncident');
+    if (!focusIncidentId) return;
+
+    if (openedFocusIncidentRef.current !== focusIncidentId) {
+      const marker = incidentMarkerRefs.current[focusIncidentId];
+      if (marker) {
+        openedFocusIncidentRef.current = focusIncidentId;
+        const timer = setTimeout(() => {
+          try {
+            marker.openPopup();
+          } catch (e) {}
+        }, 600);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [searchParams, activeIncidentFeatures]);
 
   // Línea de tiempo interactiva (MSN El Tiempo Timeline)
   const [timelineIndex, setTimelineIndex] = useState(11);
@@ -1351,23 +1370,37 @@ export const CrisisRoomPage = () => {
                   key={`incident-marker-${incId}`}
                   position={[lat, lon]}
                   icon={createIncidentMarker(gravedad, p.tipo_evento, isSelected)}
-                  ref={(ref) => {
-                    if (ref && isSelected) {
-                      setTimeout(() => {
-                        try {
-                          ref.openPopup();
-                        } catch (e) {}
-                      }, 500);
+                  ref={(markerInstance) => {
+                    if (markerInstance) {
+                      incidentMarkerRefs.current[incId] = markerInstance;
+                    } else {
+                      delete incidentMarkerRefs.current[incId];
                     }
                   }}
                   eventHandlers={{
-                    click: () => setSelectedIncidentId(incId),
+                    click: () => {
+                      setSelectedIncidentId(incId);
+                    },
+                    popupopen: () => {
+                      setSelectedIncidentId(incId);
+                    },
+                    popupclose: () => {
+                      setSelectedIncidentId(null);
+                      if (searchParams.get('focusIncident') === incId) {
+                        navigate('/', { replace: true });
+                      }
+                    },
                   }}
                 >
-                  <Popup minWidth={270} maxWidth={340}>
+                  <Popup 
+                    minWidth={270} 
+                    maxWidth={340}
+                    autoClose={true}
+                    closeOnClick={true}
+                  >
                     <div className="text-xs space-y-2 p-1 text-slate-800 dark:text-slate-200">
                       {/* Cabecera: Tipo de evento y Nivel de Gravedad */}
-                      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-1.5">
+                      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-1.5 pr-6">
                         <span className="font-extrabold text-sm uppercase tracking-wide text-slate-900 dark:text-white flex items-center gap-1.5">
                           <AlertTriangle className={`w-4 h-4 shrink-0 ${
                             gravedad === 'CRITICO' ? 'text-red-600 dark:text-red-500 animate-pulse' :
@@ -1432,14 +1465,32 @@ export const CrisisRoomPage = () => {
                         )}
                       </div>
 
-                      {/* Botón para navegar a Seguimiento de Incidentes */}
-                      <button
-                        onClick={() => navigate('/incidentes')}
-                        className="w-full mt-1.5 py-1.5 bg-sky-600 hover:bg-sky-500 active:scale-98 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition shadow"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Gestionar en Seguimiento Incidentes</span>
-                      </button>
+                      {/* Botones de Acción */}
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const marker = incidentMarkerRefs.current[incId];
+                            if (marker) marker.closePopup();
+                            setSelectedIncidentId(null);
+                            if (searchParams.get('focusIncident')) {
+                              navigate('/', { replace: true });
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 shadow-sm"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Cerrar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => navigate('/incidentes')}
+                          className="flex-1 py-1.5 bg-sky-600 hover:bg-sky-500 active:scale-98 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition shadow"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Gestionar Incidente</span>
+                        </button>
+                      </div>
                     </div>
                   </Popup>
                 </Marker>

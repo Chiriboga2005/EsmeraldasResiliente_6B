@@ -230,6 +230,28 @@ html.dark, body.dark {
   transition: opacity 0.18s ease-in-out;
 }
 
+/* Botón cerrar X de Popups Leaflet */
+.leaflet-popup-close-button {
+  width: 26px !important;
+  height: 26px !important;
+  font-size: 18px !important;
+  line-height: 24px !important;
+  text-align: center !important;
+  color: #94a3b8 !important;
+  padding: 0 !important;
+  top: 8px !important;
+  right: 8px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  z-index: 1000 !important;
+  cursor: pointer !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: #ef4444 !important;
+  background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

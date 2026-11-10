@@ -70,8 +70,16 @@ class SincronizarLoteOfflineAPIView(APIView):
             reporte_id = item.get('id')
             serializer = CrearReporteSerializer(data=item)
             if serializer.is_valid():
-                # Verificar si ya existía para garantizar idempotencia
-                existente = ReporteIncidente.objects.filter(id=reporte_id).first()
+                # Verificar si ya existía para garantizar idempotencia (validación segura de UUID)
+                existente = None
+                if reporte_id:
+                    try:
+                        import uuid
+                        uuid_obj = uuid.UUID(str(reporte_id))
+                        existente = ReporteIncidente.objects.filter(id=uuid_obj).first()
+                    except (ValueError, TypeError, Exception):
+                        existente = None
+
                 if existente:
                     actualizados += 1
                 else:
