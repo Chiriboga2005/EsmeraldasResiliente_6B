@@ -101,6 +101,36 @@ class CatalogoSuministrosListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = SuministroCatalogoSerializer
     permission_classes = [permissions.AllowAny]
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            from django.db import connection, IntegrityError
+            if isinstance(e, IntegrityError):
+                try:
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            "SELECT setval(pg_get_serial_sequence('suministros_catalogo', 'id'), COALESCE(MAX(id), 1) + 1, false) FROM suministros_catalogo;"
+                        )
+                    self.perform_create(serializer)
+                    headers = self.get_success_headers(serializer.data)
+                    return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+                except Exception as retry_err:
+                    return Response(
+                        {"detail": f"Error de base de datos al registrar suministro: {str(retry_err)}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            return Response(
+                {"detail": f"Error guardando suministro: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 class CatalogoSuministroDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     """
     CRUD Kit individual: Consulta, modificación y eliminación de suministros.

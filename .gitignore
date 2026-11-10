@@ -44,3 +44,8 @@ Frontend/node_modules/
 dist/
 Frontend/dist/
 
+# Archivos y capturas locales temporales
+/*.png
+/esmeraldas_resiliente_movil*
+
+

@@ -189,11 +189,11 @@ export const HumanitarianPage = () => {
   const handleOpenCreateKit = () => {
     setEditingKit(null);
     setKitForm({
-      codigo_sku: `KIT-${Math.floor(100 + Math.random() * 900)}`,
+      codigo_sku: `SUM-${Math.floor(100 + Math.random() * 900)}`,
       nombre_suministro: '',
-      tipo: 'ALIMENTO',
-      unidad_medida: 'Kit Familiar',
-      peso_kg: 15.0,
+      tipo: 'COLCHON_COBIJA',
+      unidad_medida: 'UNIDAD',
+      peso_kg: 5.0,
       descripcion: ''
     });
     setShowKitModal(true);
@@ -204,8 +204,8 @@ export const HumanitarianPage = () => {
     setKitForm({
       codigo_sku: kit.codigo_sku,
       nombre_suministro: kit.nombre_suministro,
-      tipo: kit.tipo,
-      unidad_medida: kit.unidad_medida,
+      tipo: kit.tipo || 'COLCHON_COBIJA',
+      unidad_medida: kit.unidad_medida || 'UNIDAD',
       peso_kg: kit.peso_kg || 0,
       descripcion: kit.descripcion || ''
     });
@@ -223,7 +223,10 @@ export const HumanitarianPage = () => {
       setShowKitModal(false);
       await loadData();
     } catch (err) {
-      alert('Error guardando suministro/kit: ' + (err.response?.data?.detail || err.message));
+      const msg = err.response?.data?.detail || 
+                  (typeof err.response?.data === 'object' ? Object.entries(err.response.data).map(([k, v]) => `${k}: ${v}`).join(', ') : null) || 
+                  err.message;
+      alert('Error guardando suministro/kit: ' + msg);
     }
   };
 
@@ -235,6 +238,28 @@ export const HumanitarianPage = () => {
       } catch (err) {
         alert('Error eliminando suministro: ' + (err.response?.data?.detail || err.message));
       }
+    }
+  };
+
+  const formatTipoSuministro = (t) => {
+    switch (t) {
+      case 'COLCHON_COBIJA':
+      case 'REFUGIO':
+        return 'Colchón / Cobija';
+      case 'KIT_ASEO':
+      case 'HIGIENE':
+        return 'Kit Aseo';
+      case 'ALIMENTO':
+        return 'Alimento';
+      case 'AGUA':
+        return 'Agua';
+      case 'MEDICINA':
+        return 'Medicina';
+      case 'HERRAMIENTAS':
+      case 'HERRAMIENTA':
+        return 'Herramientas';
+      default:
+        return t ? t.replace(/_/g, ' ') : 'General';
     }
   };
 
@@ -609,8 +634,8 @@ export const HumanitarianPage = () => {
                     <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-crisis-700 text-sky-400 border border-slate-600">
                       {item.codigo_sku}
                     </span>
-                    <span className="text-[10px] uppercase font-bold text-slate-400">
-                      {item.tipo}
+                    <span className="text-[10px] uppercase font-bold text-slate-300 bg-crisis-700/80 px-2 py-0.5 rounded border border-slate-600">
+                      {formatTipoSuministro(item.tipo)}
                     </span>
                   </div>
                   <h4 className="font-bold text-white text-sm">{item.nombre_suministro}</h4>
@@ -771,7 +796,7 @@ export const HumanitarianPage = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL FORMULARIO KITS (CREAR / EDITAR) */}
+      {/* MODAL FORMULARIO KITS Y SUMINISTROS (CREAR / EDITAR) */}
       {/* ========================================================================= */}
       {showKitModal && (
         <div className="fixed inset-0 z-[1500] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -779,7 +804,7 @@ export const HumanitarianPage = () => {
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Boxes className="w-4 h-4 text-sky-400" />
-                {editingKit ? 'Editar Kit / Suministro' : 'Registrar Nuevo Kit'}
+                {editingKit ? 'Editar Suministro / Provisión' : 'Registrar Nuevo Suministro / Provisión'}
               </h3>
               <button
                 onClick={() => setShowKitModal(false)}
@@ -792,11 +817,11 @@ export const HumanitarianPage = () => {
             <form onSubmit={handleSaveKit} className="space-y-3 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-300 font-semibold">Código SKU</label>
+                  <label className="text-slate-300 font-semibold">Código SKU / Identificador</label>
                   <input
                     type="text"
                     required
-                    placeholder="ej: KIT-ALIM-3D"
+                    placeholder="ej: UNT-919, KIT-ALIM-3D"
                     value={kitForm.codigo_sku}
                     onChange={(e) => setKitForm({ ...kitForm, codigo_sku: e.target.value })}
                     className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs font-mono"
@@ -809,21 +834,22 @@ export const HumanitarianPage = () => {
                     onChange={(e) => setKitForm({ ...kitForm, tipo: e.target.value })}
                     className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
                   >
+                    <option value="COLCHON_COBIJA">Colchones, Frazadas y Refugio</option>
                     <option value="ALIMENTO">Alimentos y Raciones</option>
                     <option value="AGUA">Agua Potable e Hidratación</option>
-                    <option value="HIGIENE">Kit de Aseo e Higiene</option>
-                    <option value="REFUGIO">Colchones, Frazadas y Refugio</option>
-                    <option value="HERRAMIENTA">Herramientas y Limpieza</option>
+                    <option value="MEDICINA">Medicinas y Primeros Auxilios</option>
+                    <option value="KIT_ASEO">Kit de Higiene y Aseo Personal</option>
+                    <option value="HERRAMIENTAS">Herramientas y Limpieza</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="text-slate-300 font-semibold">Nombre del Suministro</label>
+                <label className="text-slate-300 font-semibold">Nombre del Suministro / Insumo</label>
                 <input
                   type="text"
                   required
-                  placeholder="ej: Kit de Alimentos Familiares (3 días)"
+                  placeholder="ej: Colchones de Espuma, Kit de Alimentos, Bidón de Agua"
                   value={kitForm.nombre_suministro}
                   onChange={(e) => setKitForm({ ...kitForm, nombre_suministro: e.target.value })}
                   className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
@@ -833,13 +859,20 @@ export const HumanitarianPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-slate-300 font-semibold">Unidad de Medida</label>
-                  <input
-                    type="text"
-                    placeholder="ej: Kit Familiar, Bidón, Caja"
+                  <select
                     value={kitForm.unidad_medida}
                     onChange={(e) => setKitForm({ ...kitForm, unidad_medida: e.target.value })}
-                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
-                  />
+                    className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs font-bold"
+                  >
+                    <option value="UNIDAD">UNIDAD (Colchón, frazada, linterna, etc.)</option>
+                    <option value="KIT">KIT (Kit familiar, kit de aseo, etc.)</option>
+                    <option value="PAQUETE">PAQUETE (Paquete de insumos)</option>
+                    <option value="CAJA">CAJA</option>
+                    <option value="BIDON">BIDÓN / BOTELLÓN</option>
+                    <option value="SACO">SACO / BULTO</option>
+                    <option value="RACION">RACIÓN</option>
+                    <option value="LITRO">LITRO</option>
+                  </select>
                 </div>
                 <div>
                   <label className="text-slate-300 font-semibold">Peso Aproximado (kg)</label>
@@ -855,10 +888,10 @@ export const HumanitarianPage = () => {
               </div>
 
               <div>
-                <label className="text-slate-300 font-semibold">Descripción y Contenido del Kit</label>
+                <label className="text-slate-300 font-semibold">Descripción y Detalle del Suministro</label>
                 <textarea
                   rows="2"
-                  placeholder="Detalle de provisiones incluidas (arroz, aceite, atún, agua, etc.)"
+                  placeholder="Detalle de provisiones o características técnicas..."
                   value={kitForm.descripcion}
                   onChange={(e) => setKitForm({ ...kitForm, descripcion: e.target.value })}
                   className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg p-2 text-white text-xs"
@@ -877,7 +910,7 @@ export const HumanitarianPage = () => {
                   type="submit"
                   className="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg shadow"
                 >
-                  {editingKit ? 'Guardar Cambios' : 'Crear Kit'}
+                  {editingKit ? 'Guardar Cambios' : 'Crear Suministro'}
                 </button>
               </div>
             </form>

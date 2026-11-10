@@ -107,6 +107,43 @@ class SuministroCatalogoSerializer(serializers.ModelSerializer):
         model = SuministroCatalogo
         fields = '__all__'
 
+    def validate_tipo(self, value):
+        if not value:
+            return 'ALIMENTO'
+        val = str(value).strip().upper()
+        mapping = {
+            'REFUGIO': 'COLCHON_COBIJA',
+            'COLCHONES': 'COLCHON_COBIJA',
+            'COLCHON': 'COLCHON_COBIJA',
+            'COBIJA': 'COLCHON_COBIJA',
+            'HIGIENE': 'KIT_ASEO',
+            'ASEO': 'KIT_ASEO',
+            'KIT_HIGIENE': 'KIT_ASEO',
+            'HERRAMIENTA': 'HERRAMIENTAS',
+            'ALIMENTOS': 'ALIMENTO',
+            'RACION': 'ALIMENTO',
+            'MEDICINAS': 'MEDICINA',
+            'SALUD': 'MEDICINA',
+        }
+        mapped = mapping.get(val, val)
+        valid_enums = {'ALIMENTO', 'AGUA', 'MEDICINA', 'KIT_ASEO', 'COLCHON_COBIJA', 'HERRAMIENTAS'}
+        if mapped not in valid_enums:
+            return 'ALIMENTO'
+        return mapped
+
+    def validate_unidad_medida(self, value):
+        if not value:
+            return 'UNIDAD'
+        return str(value).strip().upper()
+
+    def validate_peso_kg(self, value):
+        if value is None:
+            return 0.0
+        try:
+            return round(float(value), 2)
+        except (ValueError, TypeError):
+            return 0.0
+
 class InventarioBodegaSerializer(serializers.ModelSerializer):
     suministro_detalle = SuministroCatalogoSerializer(source='suministro', read_only=True)
 

@@ -29,14 +29,8 @@ export const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Mantener abierto el submenú de incidentes si estamos en la ruta /incidentes
+  // Estado del acordeón del submenú de incidentes (abierto por defecto, colapsable/expandible por el usuario)
   const [incidentesMenuOpen, setIncidentesMenuOpen] = useState(true);
-
-  useEffect(() => {
-    if (location.pathname === '/incidentes') {
-      setIncidentesMenuOpen(true);
-    }
-  }, [location.pathname]);
 
   const navItems = [
     {
@@ -161,15 +155,18 @@ export const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
 
             return (
               <div key={item.to} className="space-y-1">
-                <div className="flex items-center">
+                <div className="flex items-center justify-between gap-1">
                   <NavLink
                     to={item.to}
                     end={item.to === '/'}
                     onClick={() => {
+                      if (isIncidentesModule && !incidentesMenuOpen) {
+                        setIncidentesMenuOpen(true);
+                      }
                       if (isMobile) onClose();
                     }}
                     className={({ isActive }) =>
-                      `w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition ${
+                      `flex-1 flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition ${
                         isActive
                           ? 'bg-sky-100 dark:bg-sky-500/20 text-sky-950 dark:text-sky-300 border border-sky-300 dark:border-sky-500/40 font-bold shadow-sm'
                           : 'text-slate-800 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-crisis-700/60 hover:text-slate-950 dark:hover:text-white font-semibold'
@@ -181,33 +178,33 @@ export const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
                       <span>{item.label}</span>
                     </div>
 
-                    {item.badge === 'En Vivo' ? (
+                    {item.badge === 'En Vivo' && (
                       <span className="relative flex h-2.5 w-2.5 items-center justify-center mr-1" title="Sistema Activo en Tiempo Real">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-sm shadow-emerald-400"></span>
                       </span>
-                    ) : isIncidentesModule ? (
-                      <span
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIncidentesMenuOpen(!incidentesMenuOpen);
-                        }}
-                        className="p-1 hover:bg-slate-200 dark:hover:bg-crisis-700 rounded transition text-slate-600 dark:text-slate-400"
-                        title="Alternar filtros y categorías"
-                      >
-                        {incidentesMenuOpen ? (
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        ) : (
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        )}
-                      </span>
-                    ) : null}
+                    )}
                   </NavLink>
+
+                  {isIncidentesModule && (
+                    <button
+                      type="button"
+                      onClick={() => setIncidentesMenuOpen(!incidentesMenuOpen)}
+                      className="p-2 rounded-lg text-slate-700 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-700 transition"
+                      title={incidentesMenuOpen ? "Ocultar filtros y categorías" : "Mostrar filtros y categorías"}
+                      aria-label="Alternar acordeón"
+                    >
+                      {incidentesMenuOpen ? (
+                        <ChevronDown className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-slate-500" />
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 {/* LISTA EXPANDIBLE DEBAJO DE SEGUIMIENTO INCIDENTES */}
-                {isIncidentesModule && (isCurrentPage || incidentesMenuOpen) && (
+                {isIncidentesModule && incidentesMenuOpen && (
                   <div className="ml-3 pl-3 border-l-2 border-sky-300 dark:border-sky-600/70 my-1.5 space-y-2 py-1">
                     {/* Sub-grupo: Filtros de Estado */}
                     <div>
