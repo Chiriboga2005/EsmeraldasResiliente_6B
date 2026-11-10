@@ -117,3 +117,4 @@ Haz doble clic sobre `detener_keycloak.bat` o ejecuta:
 ```bash
 docker compose down
 ```
+

@@ -65,6 +65,13 @@ export const AuthProvider = ({ children }) => {
     return perfil;
   };
 
+  const loginWithKeycloakToken = (kcToken, kcUser) => {
+    localStorage.setItem('access_token', kcToken);
+    localStorage.setItem('usuario', JSON.stringify(kcUser));
+    setToken(kcToken);
+    setUser(kcUser);
+  };
+
   const logout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
@@ -105,6 +112,7 @@ export const AuthProvider = ({ children }) => {
         userRol,
         loading,
         login,
+        loginWithKeycloakToken,
         logout,
         reloadProfile: fetchProfile,
       }}

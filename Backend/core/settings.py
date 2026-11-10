@@ -170,7 +170,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ------------------------------------------------------------------------------
 # DJANGO REST FRAMEWORK Y AUTENTICACIÓN HÍBRIDA (KEYCLOAK OIDC + SIMPLE_JWT)
 # ------------------------------------------------------------------------------
-KEYCLOAK_URL = os.getenv('KEYCLOAK_URL', '').rstrip('/')
+KEYCLOAK_URL = os.getenv('KEYCLOAK_URL', 'https://innocent-arrivals-sec-penetration.trycloudflare.com').rstrip('/')
 KEYCLOAK_REALM = os.getenv('KEYCLOAK_REALM', 'esmeraldas-resiliente')
 
 REST_FRAMEWORK = {

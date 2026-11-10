@@ -128,3 +128,4 @@ class KeycloakOrJWTAuthentication(authentication.BaseAuthentication):
             )
 
         return (user, token)
+

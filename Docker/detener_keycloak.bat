@@ -13,3 +13,4 @@ echo.
 echo Keycloak se ha detenido. Los datos permanecen guardados de forma segura en Aiven Cloud.
 echo.
 pause
+
