@@ -21,14 +21,15 @@ import {
   Mountain,
   Bot,
   Megaphone,
-  X
+  X,
+  Lock
 } from 'lucide-react';
 import { reportsApi } from '../../api/reportsApi';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export const IncidentCommandPage = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -104,6 +105,10 @@ export const IncidentCommandPage = () => {
 
   // Actualizar estado de incidente (Workflow Módulo 3)
   const handleUpdateStatus = async (id, newStatus) => {
+    if (!isAdmin) {
+      alert('Acción restringida: Solo un Administrador autenticado del COE puede despachar o modificar estados de incidentes.');
+      return;
+    }
     try {
       await reportsApi.actualizarEstadoReporte(id, { estado: newStatus });
       await loadData();
@@ -113,6 +118,10 @@ export const IncidentCommandPage = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!isAdmin) {
+      alert('Acción restringida: Solo un Administrador autenticado del COE puede eliminar incidentes.');
+      return;
+    }
     if (window.confirm('¿Confirmas que deseas eliminar permanentemente este incidente del sistema?')) {
       try {
         await reportsApi.eliminarReporte(id);
@@ -269,10 +278,21 @@ export const IncidentCommandPage = () => {
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full md:w-auto">
           <button
             onClick={() => setShowAlertModal(true)}
-            className="flex-1 sm:flex-initial justify-center px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition active:scale-95"
+            disabled={!isAdmin}
+            className={`flex-1 sm:flex-initial justify-center px-4 py-2 font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition ${
+              isAdmin
+                ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white active:scale-95 cursor-pointer'
+                : 'bg-slate-200 dark:bg-crisis-700 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-crisis-600 opacity-70'
+            }`}
+            title={isAdmin ? 'Emitir alerta sectorial' : 'Solo Administradores del COE pueden emitir alertas sectoriales'}
           >
-            <BellRing className="w-4 h-4 shrink-0" />
+            {isAdmin ? <BellRing className="w-4 h-4 shrink-0" /> : <Lock className="w-4 h-4 shrink-0" />}
             <span>Emitir Alerta Sectorial</span>
+            {!isAdmin && (
+              <span className="text-[10px] ml-1 px-1.5 py-0.2 rounded bg-slate-300 dark:bg-crisis-600 text-slate-600 dark:text-slate-300 font-semibold">
+                Solo Admin
+              </span>
+            )}
           </button>
 
           <button
@@ -285,6 +305,27 @@ export const IncidentCommandPage = () => {
           </button>
         </div>
       </div>
+
+      {/* Banner informativo de modo consulta para Ciudadano / No Administrador */}
+      {!isAdmin && (
+        <div className="bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 text-sky-900 dark:text-sky-200 p-3 sm:p-3.5 rounded-xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <Lock className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
+            <div>
+              <p className="font-bold text-slate-900 dark:text-white">Modo Ciudadano (Solo Lectura y Consulta):</p>
+              <p className="text-slate-600 dark:text-slate-300 text-[11px] mt-0.5">
+                Puedes visualizar el estado de las emergencias y ubicarlas en el radar en vivo. El despacho de auxilio, actualización de estados operativos y alertas sectoriales están reservados exclusivamente para el Administrador del COE.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/login')}
+            className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold text-xs shrink-0 transition shadow-sm"
+          >
+            Acceder como Administrador
+          </button>
+        </div>
+      )}
 
       {/* CENTRO DE CONTROL SIMPLIFICADO A SOLO WIDGETS INTERACTIVOS */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -535,56 +576,85 @@ export const IncidentCommandPage = () => {
                   </button>
                 </div>
 
-                {/* Botones de Cambio de Estado con Alto Contraste */}
+                {/* Botones de Cambio de Estado con Alto Contraste (Exclusivo Administrador) */}
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   {inc.estado === 'PENDIENTE' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'EN_PROCESO')}
-                      className="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow active:scale-95"
+                      disabled={!isAdmin}
+                      className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition flex items-center gap-1.5 shadow ${
+                        isAdmin
+                          ? 'bg-sky-600 hover:bg-sky-500 text-white active:scale-95 cursor-pointer'
+                          : 'bg-slate-200 dark:bg-crisis-700 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-crisis-600 opacity-60'
+                      }`}
+                      title={isAdmin ? 'Despachar auxilio al incidente' : 'Acción restringida: Requiere cuenta Administrador'}
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
                       <span>Despachar / En Proceso</span>
+                      {!isAdmin && <Lock className="w-3 h-3 ml-0.5 text-slate-400" />}
                     </button>
                   )}
 
                   {inc.estado === 'EN_PROCESO' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'ATENDIDO')}
-                      className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow active:scale-95"
+                      disabled={!isAdmin}
+                      className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition flex items-center gap-1.5 shadow ${
+                        isAdmin
+                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95 cursor-pointer'
+                          : 'bg-slate-200 dark:bg-crisis-700 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-crisis-600 opacity-60'
+                      }`}
+                      title={isAdmin ? 'Marcar caso como atendido' : 'Acción restringida: Requiere cuenta Administrador'}
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Marcar Atendido</span>
+                      {!isAdmin && <Lock className="w-3 h-3 ml-0.5 text-slate-400" />}
                     </button>
                   )}
 
                   {inc.estado === 'ATENDIDO' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'EN_PROCESO')}
-                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition flex items-center gap-1 shadow active:scale-95"
+                      disabled={!isAdmin}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow ${
+                        isAdmin
+                          ? 'bg-slate-800 hover:bg-slate-700 text-white active:scale-95 cursor-pointer'
+                          : 'bg-slate-200 dark:bg-crisis-700 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-crisis-600 opacity-60'
+                      }`}
+                      title={isAdmin ? 'Reabrir caso' : 'Acción restringida: Requiere cuenta Administrador'}
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
                       <span>Reabrir Caso</span>
+                      {!isAdmin && <Lock className="w-3 h-3 ml-0.5 text-slate-400" />}
                     </button>
                   )}
 
                   {inc.estado !== 'DESCARTADO' && (
                     <button
                       onClick={() => handleUpdateStatus(inc.id, 'DESCARTADO')}
-                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 border border-slate-300 text-xs font-bold transition dark:bg-crisis-700 dark:text-slate-300 dark:border-crisis-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                      title="Descartar reporte no verificado o duplicado"
+                      disabled={!isAdmin}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                        isAdmin
+                          ? 'bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 border-slate-300 dark:bg-crisis-700 dark:text-slate-300 dark:border-crisis-600 dark:hover:bg-red-950/40 dark:hover:text-red-400 cursor-pointer'
+                          : 'bg-slate-100 dark:bg-crisis-800 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-crisis-700 cursor-not-allowed opacity-60'
+                      }`}
+                      title={isAdmin ? 'Descartar reporte no verificado o duplicado' : 'Acción restringida: Requiere cuenta Administrador'}
                     >
-                      Descartar
+                      <span>Descartar</span>
+                      {!isAdmin && <Lock className="w-3 h-3 inline ml-1 text-slate-400" />}
                     </button>
                   )}
 
-                  {/* Eliminar (Admin) */}
-                  <button
-                    onClick={() => handleDelete(inc.id)}
-                    className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-crisis-700 dark:hover:text-red-400 rounded-lg transition"
-                    title="Eliminar reporte de la base de datos"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {/* Eliminar (Exclusivo Administrador) */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDelete(inc.id)}
+                      className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-crisis-700 dark:hover:text-red-400 rounded-lg transition"
+                      title="Eliminar reporte de la base de datos"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

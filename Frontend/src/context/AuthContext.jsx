@@ -73,12 +73,25 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const userRol = (user?.rol || user?.properties?.rol || '').toUpperCase();
+  const userUsername = (user?.username || user?.properties?.username || '').toLowerCase();
+  const isAdmin = Boolean(
+    user && (
+      userRol === 'ADMINISTRADOR' || 
+      userRol === 'ADMIN' || 
+      userUsername === 'admin' || 
+      user?.is_staff || 
+      user?.is_superuser
+    )
+  );
+
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
         isAuthenticated: !!token,
+        isAdmin,
         loading,
         login,
         logout,

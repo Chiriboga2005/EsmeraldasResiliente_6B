@@ -428,7 +428,8 @@ export const CrisisRoomPage = () => {
   const [layers, setLayers] = useState({
     zonasRiesgo: true,
     albergues: true,
-    infraestructuras: true,
+    hospitales: true,
+    bomberos: true,
     redHidrica: true,
     incidentes: true,
   });
@@ -957,18 +958,62 @@ export const CrisisRoomPage = () => {
               <span>Nubosidad</span>
             </button>
 
-            <button
-              onClick={() => setWeatherMode('storm')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                weatherMode === 'storm'
-                  ? 'bg-red-600 text-white shadow-md ring-1 ring-red-300'
-                  : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-crisis-800'
-              }`}
-              title="Alerta de Tormentas y Desborde de Cuencas"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Tormentas & Riesgo</span>
-            </button>
+            <div className="flex items-center gap-1.5 pl-2 ml-1 border-l border-slate-300 dark:border-crisis-700/80">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 hidden xl:inline">
+                Leyenda:
+              </span>
+
+              {/* Checkbox Albergues */}
+              <label 
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition select-none ${
+                  layers.albergues ? 'bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-300 dark:border-emerald-500/30' : 'opacity-60 hover:opacity-100'
+                }`}
+                title="Mostrar u ocultar albergues temporales en el mapa"
+              >
+                <input
+                  type="checkbox"
+                  checked={layers.albergues}
+                  onChange={(e) => setLayers((prev) => ({ ...prev, albergues: e.target.checked }))}
+                  className="w-3.5 h-3.5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-crisis-600 cursor-pointer"
+                />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 shadow-sm"></span>
+                <span className="font-bold text-[11px] text-slate-800 dark:text-slate-200 whitespace-nowrap">Albergues</span>
+              </label>
+
+              {/* Checkbox Hospitales */}
+              <label 
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition select-none ${
+                  layers.hospitales ? 'bg-red-50 dark:bg-red-500/15 border border-red-300 dark:border-red-500/30' : 'opacity-60 hover:opacity-100'
+                }`}
+                title="Mostrar u ocultar hospitales y centros médicos en el mapa"
+              >
+                <input
+                  type="checkbox"
+                  checked={layers.hospitales}
+                  onChange={(e) => setLayers((prev) => ({ ...prev, hospitales: e.target.checked }))}
+                  className="w-3.5 h-3.5 rounded text-red-600 focus:ring-red-500 border-slate-300 dark:border-crisis-600 cursor-pointer"
+                />
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 shrink-0 shadow-sm"></span>
+                <span className="font-bold text-[11px] text-slate-800 dark:text-slate-200 whitespace-nowrap">Hospitales</span>
+              </label>
+
+              {/* Checkbox Cuerpos de Bomberos */}
+              <label 
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition select-none ${
+                  layers.bomberos ? 'bg-amber-50 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-500/30' : 'opacity-60 hover:opacity-100'
+                }`}
+                title="Mostrar u ocultar estaciones de bomberos en el mapa"
+              >
+                <input
+                  type="checkbox"
+                  checked={layers.bomberos}
+                  onChange={(e) => setLayers((prev) => ({ ...prev, bomberos: e.target.checked }))}
+                  className="w-3.5 h-3.5 rounded text-amber-600 focus:ring-amber-500 border-slate-300 dark:border-crisis-600 cursor-pointer"
+                />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-600 shrink-0 shadow-sm"></span>
+                <span className="font-bold text-[11px] text-slate-800 dark:text-slate-200 whitespace-nowrap">Bomberos</span>
+              </label>
+            </div>
           </div>
 
           {/* Selector de Mapa Base Ultra-Rápido */}
@@ -1271,8 +1316,8 @@ export const CrisisRoomPage = () => {
               );
             })}
 
-            {/* 6. INFRAESTRUCTURAS ESENCIALES (HOSPITALES, BOMBEROS) */}
-            {layers.infraestructuras && infraFeatures.map((feature, i) => {
+            {/* 6. INFRAESTRUCTURAS ESENCIALES (HOSPITALES, BOMBEROS) CON FILTRO DE LEYENDA */}
+            {infraFeatures.map((feature, i) => {
               const rawCoords = feature.geometry?.coordinates;
               if (!rawCoords) return null;
               const coords = Array.isArray(rawCoords)
@@ -1284,6 +1329,11 @@ export const CrisisRoomPage = () => {
 
               const p = feature.properties || {};
               const infraId = feature.id || p.id || (i + 1);
+              const isBombero = (p.tipo || '').toUpperCase().includes('BOMBERO');
+
+              // Ocultar según checkboxes de leyenda
+              if (isBombero && !layers.bomberos) return null;
+              if (!isBombero && !layers.hospitales) return null;
 
               return (
                 <Marker 

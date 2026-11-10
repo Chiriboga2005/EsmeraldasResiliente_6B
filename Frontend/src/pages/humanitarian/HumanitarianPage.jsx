@@ -16,22 +16,27 @@ import {
   Plus,
   X,
   RefreshCw,
-  Search
+  Search,
+  Lock
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { humanitarianApi } from '../../api/humanitarianApi';
 import { useAuth } from '../../context/AuthContext';
 
 export const HumanitarianPage = () => {
-  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, isAdmin: authIsAdmin } = useAuth();
 
   // Comprobar rol de administrador / operador
   const userRole = (user?.rol || user?.properties?.rol || '').toUpperCase();
   const userName = (user?.username || user?.properties?.username || '').toLowerCase();
-  const isAdmin = isAuthenticated && (
+  const isAdmin = authIsAdmin || (isAuthenticated && (
     userRole === 'ADMINISTRADOR' || 
     userRole === 'OPERADOR' || 
-    userName === 'admin'
-  );
+    userName === 'admin' ||
+    user?.is_staff ||
+    user?.is_superuser
+  ));
 
   const [tab, setTab] = useState('censo'); // 'censo' | 'bodegas' | 'suministros'
   const [familias, setFamilias] = useState([]);
@@ -106,6 +111,10 @@ export const HumanitarianPage = () => {
   // Submit Censo
   const handleSubmitCenso = async (e) => {
     e.preventDefault();
+    if (!isAdmin) {
+      alert('Acción restringida: Solo el personal Administrador acreditado del COE puede registrar fichas censales.');
+      return;
+    }
     try {
       await humanitarianApi.crearCensoFamilia(nuevoCenso);
       setCensoGuardado(true);
@@ -323,6 +332,27 @@ export const HumanitarianPage = () => {
         </div>
       </div>
 
+      {/* Banner Informativo de Modo Consulta para Ciudadanos */}
+      {!isAdmin && (
+        <div className="bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 text-sky-900 dark:text-sky-200 p-3 sm:p-3.5 rounded-xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <Lock className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
+            <div>
+              <p className="font-bold text-slate-900 dark:text-white">Modo Ciudadano (Solo Lectura y Consulta Pública):</p>
+              <p className="text-slate-600 dark:text-slate-300 text-[11px] mt-0.5">
+                Los formularios de registro de fichas censales, administración de bodegas y catálogo de suministros se encuentran en modo consulta. Para registrar o modificar registros, debes acceder con credenciales de Administrador del COE.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/login')}
+            className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold text-xs shrink-0 transition shadow-sm"
+          >
+            Acceder como Administrador
+          </button>
+        </div>
+      )}
+
       {censoGuardado && (
         <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
@@ -340,8 +370,9 @@ export const HumanitarianPage = () => {
             className="lg:col-span-2 bg-crisis-800 border border-crisis-700 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xl"
           >
             <div className="flex items-center justify-between border-b border-crisis-700 pb-2.5">
-              <span className="text-xs font-bold text-sky-400 uppercase tracking-wider">
-                Nueva Ficha Familiar Damnificada
+              <span className="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                {!isAdmin && <Lock className="w-3.5 h-3.5 text-slate-400" />}
+                <span>Nueva Ficha Familiar Damnificada</span>
               </span>
               <span className="text-xs font-mono text-slate-400">
                 {nuevoCenso.codigo_censo}
@@ -356,10 +387,13 @@ export const HumanitarianPage = () => {
                 <input
                   type="text"
                   required
-                  placeholder="ej: María Elena Bone"
+                  disabled={!isAdmin}
+                  placeholder={isAdmin ? "ej: María Elena Bone" : "Modo consulta (Solo Admin)"}
                   value={nuevoCenso.jefe_familia_nombre}
                   onChange={(e) => setNuevoCenso({ ...nuevoCenso, jefe_familia_nombre: e.target.value })}
-                  className="w-full mt-1 bg-crisis-900 border border-crisis-600 rounded-lg px-3 py-2 text-xs text-white"
+                  className={`w-full mt-1 bg-crisis-900 border border-crisis-600 rounded-lg px-3 py-2 text-xs text-white ${
+                    !isAdmin ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-crisis-950' : ''
+                  }`}
                 />
               </div>
               <div>
@@ -369,11 +403,14 @@ export const HumanitarianPage = () => {
                 <input
                   type="text"
                   required
+                  disabled={!isAdmin}
                   maxLength="10"
-                  placeholder="ej: 0801234567"
+                  placeholder={isAdmin ? "ej: 0801234567" : "Modo consulta (Solo Admin)"}
                   value={nuevoCenso.jefe_familia_cedula}
                   onChange={(e) => setNuevoCenso({ ...nuevoCenso, jefe_familia_cedula: e.target.value })}
-                  className="w-full mt-1 bg-crisis-900 border border-crisis-600 rounded-lg px-3 py-2 text-xs text-white"
+                  className={`w-full mt-1 bg-crisis-900 border border-crisis-600 rounded-lg px-3 py-2 text-xs text-white ${
+                    !isAdmin ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-crisis-950' : ''
+                  }`}
                 />
               </div>
             </div>
@@ -385,10 +422,13 @@ export const HumanitarianPage = () => {
                 </label>
                 <input
                   type="text"
-                  placeholder="ej: 0991234567"
+                  disabled={!isAdmin}
+                  placeholder={isAdmin ? "ej: 0991234567" : "Modo consulta"}
                   value={nuevoCenso.telefono_contacto}
                   onChange={(e) => setNuevoCenso({ ...nuevoCenso, telefono_contacto: e.target.value })}
-                  className="w-full mt-1 bg-crisis-900 border border-crisis-600 rounded-lg px-3 py-2 text-xs text-white"
+                  className={`w-full mt-1 bg-crisis-900 border border-crisis-600 rounded-lg px-3 py-2 text-xs text-white ${
+                    !isAdmin ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-crisis-950' : ''
+                  }`}
                 />
               </div>
               <div>
@@ -397,9 +437,12 @@ export const HumanitarianPage = () => {
                 </label>
                 <input
                   type="text"
+                  disabled={!isAdmin}
                   value={nuevoCenso.barrio_sector}
                   onChange={(e) => setNuevoCenso({ ...nuevoCenso, barrio_sector: e.target.value })}
-                  className="w-full mt-1 bg-crisis-900 border border-crisis-600 rounded-lg px-3 py-2 text-xs text-white"
+                  className={`w-full mt-1 bg-crisis-900 border border-crisis-600 rounded-lg px-3 py-2 text-xs text-white ${
+                    !isAdmin ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-crisis-950' : ''
+                  }`}
                 />
               </div>
             </div>
@@ -415,9 +458,12 @@ export const HumanitarianPage = () => {
                   <input
                     type="number"
                     min="1"
+                    disabled={!isAdmin}
                     value={nuevoCenso.numero_integrantes}
                     onChange={(e) => setNuevoCenso({ ...nuevoCenso, numero_integrantes: Number(e.target.value) })}
-                    className="w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1.5 text-xs text-center text-white"
+                    className={`w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1.5 text-xs text-center text-white ${
+                      !isAdmin ? 'opacity-60 cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
                 <div>
@@ -425,9 +471,12 @@ export const HumanitarianPage = () => {
                   <input
                     type="number"
                     min="0"
+                    disabled={!isAdmin}
                     value={nuevoCenso.ninos_menores_5}
                     onChange={(e) => setNuevoCenso({ ...nuevoCenso, ninos_menores_5: Number(e.target.value) })}
-                    className="w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1.5 text-xs text-center text-white"
+                    className={`w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1.5 text-xs text-center text-white ${
+                      !isAdmin ? 'opacity-60 cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
                 <div>
@@ -435,9 +484,12 @@ export const HumanitarianPage = () => {
                   <input
                     type="number"
                     min="0"
+                    disabled={!isAdmin}
                     value={nuevoCenso.adultos_mayores}
                     onChange={(e) => setNuevoCenso({ ...nuevoCenso, adultos_mayores: Number(e.target.value) })}
-                    className="w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1.5 text-xs text-center text-white"
+                    className={`w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1.5 text-xs text-center text-white ${
+                      !isAdmin ? 'opacity-60 cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
                 <div>
@@ -445,9 +497,12 @@ export const HumanitarianPage = () => {
                   <input
                     type="number"
                     min="0"
+                    disabled={!isAdmin}
                     value={nuevoCenso.personas_discapacidad}
                     onChange={(e) => setNuevoCenso({ ...nuevoCenso, personas_discapacidad: Number(e.target.value) })}
-                    className="w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1.5 text-xs text-center text-white"
+                    className={`w-full mt-1 bg-crisis-800 border border-crisis-600 rounded px-2 py-1.5 text-xs text-center text-white ${
+                      !isAdmin ? 'opacity-60 cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
               </div>
@@ -455,9 +510,15 @@ export const HumanitarianPage = () => {
 
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 font-bold text-xs text-white transition flex items-center justify-center gap-2 shadow-lg"
+              disabled={!isAdmin}
+              className={`w-full py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg ${
+                isAdmin
+                  ? 'bg-sky-600 hover:bg-sky-500 text-white cursor-pointer active:scale-95'
+                  : 'bg-slate-200 dark:bg-crisis-700 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-crisis-600 opacity-60'
+              }`}
             >
-              <PlusCircle className="w-4 h-4" /> Registrar Familia Damnificada
+              {isAdmin ? <PlusCircle className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+              <span>{isAdmin ? 'Registrar Familia Damnificada' : 'Registro Deshabilitado (Solo Administrador COE)'}</span>
             </button>
           </form>
 
